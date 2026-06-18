@@ -1,0 +1,4 @@
+config.local.json
+data/cache/
+.DS_Store
+Thumbs.db
