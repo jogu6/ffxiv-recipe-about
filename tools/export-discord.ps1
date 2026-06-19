@@ -118,22 +118,56 @@ function ConvertTo-SiteUrl {
 function ConvertTo-JsonLd {
     param(
         [string]$Title,
+        [string]$MetaTitle,
         [string]$Description,
+        [string]$Keywords,
         [string]$SiteUrl
     )
 
     $data = [ordered]@{
         "@context" = "https://schema.org"
-        "@type" = "WebSite"
-        name = $Title
-        description = $Description
-        url = $SiteUrl
-        inLanguage = "ja"
-        publisher = [ordered]@{
-            "@type" = "Organization"
-            name = "jogu6"
-            url = "https://github.com/jogu6"
-        }
+        "@graph" = @(
+            [ordered]@{
+                "@type" = "WebSite"
+                "@id" = "$($SiteUrl)#website"
+                name = $Title
+                alternateName = @(
+                    "FF14レシピ素材ツリー",
+                    "Final Fantasy XIV Online レシピ素材ツリー",
+                    "FFXIV レシピ素材ツリー"
+                )
+                headline = $MetaTitle
+                description = $Description
+                keywords = $Keywords
+                url = $SiteUrl
+                inLanguage = "ja"
+                publisher = [ordered]@{
+                    "@type" = "Organization"
+                    name = "jogu6"
+                    url = "https://github.com/jogu6"
+                }
+            },
+            [ordered]@{
+                "@type" = "WebApplication"
+                "@id" = "$($SiteUrl)#webapp"
+                name = "FF14レシピ素材ツリー"
+                alternateName = @(
+                    "Final Fantasy XIV Online レシピ素材ツリー",
+                    "FFXIV レシピ素材ツリー"
+                )
+                description = $Description
+                applicationCategory = "GameApplication"
+                operatingSystem = "Web"
+                url = "https://jogu6.github.io/ffxiv-recipe/"
+                inLanguage = "ja"
+                isAccessibleForFree = $true
+                offers = [ordered]@{
+                    "@type" = "Offer"
+                    price = "0"
+                    priceCurrency = "JPY"
+                }
+            }
+        )
     }
 
     return ($data | ConvertTo-Json -Depth 8 -Compress)
@@ -326,7 +360,9 @@ function Save-Page {
         [string]$Template,
         [string]$Path,
         [string]$Title,
+        [string]$MetaTitle,
         [string]$Description,
+        [string]$Keywords,
         [string]$SiteUrl,
         [string]$StructuredData,
         [string]$Root,
@@ -338,7 +374,9 @@ function Save-Page {
 
     $html = $Template.
         Replace("{{TITLE}}", [System.Net.WebUtility]::HtmlEncode($Title)).
+        Replace("{{META_TITLE}}", [System.Net.WebUtility]::HtmlEncode($MetaTitle)).
         Replace("{{DESCRIPTION}}", [System.Net.WebUtility]::HtmlEncode($Description)).
+        Replace("{{KEYWORDS}}", [System.Net.WebUtility]::HtmlEncode($Keywords)).
         Replace("{{SITE_URL}}", [System.Net.WebUtility]::HtmlEncode($SiteUrl)).
         Replace("{{STRUCTURED_DATA}}", $StructuredData).
         Replace("{{ROOT}}", $Root).
@@ -362,7 +400,9 @@ if ([string]::IsNullOrWhiteSpace($settings.botToken)) {
 }
 
 $siteTitle = if ($settings.siteTitle) { [string]$settings.siteTitle } else { "FF14レシピ素材ツリー とは？" }
-$siteDescription = if ($settings.siteDescription) { [string]$settings.siteDescription } else { "FF14レシピ素材ツリーの概要、使い方、スマホ対応、素材ツリー表示やお気に入りリスト機能を紹介します。" }
+$siteMetaTitle = if ($settings.siteMetaTitle) { [string]$settings.siteMetaTitle } else { "FF14レシピ素材ツリーとは？ 素材検索・レシピ逆引き・制作支援ツール紹介" }
+$siteDescription = if ($settings.siteDescription) { [string]$settings.siteDescription } else { "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FF14レシピ素材ツリー」の紹介ページです。スマホにも対応しています。" }
+$siteKeywords = if ($settings.siteKeywords) { [string]$settings.siteKeywords } else { "FF14, Final Fantasy XIV Online, FFXIV, レシピ, 素材, 素材ツリー, クラフター, 制作, 逆引き, お気に入り共有, スマホ対応" }
 $siteUrl = ConvertTo-SiteUrl $(if ($settings.siteUrl) { [string]$settings.siteUrl } else { "https://jogu6.github.io/ffxiv-recipe-about/" })
 $channelId = if ($settings.channelId) { [string]$settings.channelId } else { $null }
 $channelTitle = if ($settings.channelTitle) { [string]$settings.channelTitle } else { $siteTitle }
@@ -394,7 +434,7 @@ $licenseNotice = if (Test-Path -LiteralPath $licenseNoticePath) {
 } else {
     ""
 }
-$structuredData = ConvertTo-JsonLd -Title $siteTitle -Description $siteDescription -SiteUrl $siteUrl
+$structuredData = ConvertTo-JsonLd -Title $siteTitle -MetaTitle $siteMetaTitle -Description $siteDescription -Keywords $siteKeywords -SiteUrl $siteUrl
 $generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss zzz")
 
 $nav = '<a href="index.html">Home</a>'
@@ -466,7 +506,7 @@ $indexContent = @(
     "</main>"
 ) -join "`n"
 
-Save-Page -Template $template -Path (Join-Path $outputDir "index.html") -Title $siteTitle -Description $siteDescription -SiteUrl $siteUrl -StructuredData $structuredData -Root "" -Nav $nav -Content $indexContent -LicenseNotice $licenseNotice -GeneratedAt $generatedAt
+Save-Page -Template $template -Path (Join-Path $outputDir "index.html") -Title $siteTitle -MetaTitle $siteMetaTitle -Description $siteDescription -Keywords $siteKeywords -SiteUrl $siteUrl -StructuredData $structuredData -Root "" -Nav $nav -Content $indexContent -LicenseNotice $licenseNotice -GeneratedAt $generatedAt
 Save-RobotsTxt -Path (Join-Path $outputDir "robots.txt") -SiteUrl $siteUrl
 Save-SitemapXml -Path (Join-Path $outputDir "sitemap.xml") -SiteUrl $siteUrl
 
