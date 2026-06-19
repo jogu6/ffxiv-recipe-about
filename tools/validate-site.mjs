@@ -48,9 +48,11 @@ JSON.parse(fs.readFileSync(requireRepoFile('config.example.json'), 'utf8'));
 const requiredHtml = [
   '<link rel="icon" href="assets/app-icons/favicon.png" type="image/png">',
   '<meta name="description"',
-  '<meta name="robots" content="index, follow">',
+  '<meta name="keywords"',
+  '<meta name="robots" content="index, follow, max-image-preview:large">',
   '<link rel="canonical" href="https://jogu6.github.io/ffxiv-recipe-about/">',
   '<meta property="og:title"',
+  '<meta name="twitter:image" content="https://jogu6.github.io/ffxiv-recipe-about/assets/app-icons/favicon.png">',
   '<script type="application/ld+json">',
   '<script src="assets/app.js"></script>',
   'class="image-viewer"',
@@ -66,6 +68,10 @@ if (html.includes('site-header') || html.includes('site-nav')) {
 
 if (!html.includes('target="_blank" rel="noopener noreferrer"')) {
   throw new Error('index.html should include linked URLs with safe external-link attributes.');
+}
+
+for (const snippet of ['Final Fantasy XIV Online', 'FFXIV', 'WebApplication', '素材検索・レシピ逆引き']) {
+  if (!html.includes(snippet)) throw new Error(`index.html SEO metadata is missing: ${snippet}`);
 }
 
 if (!robots.includes('User-agent: *') || !robots.includes('Sitemap: https://jogu6.github.io/ffxiv-recipe-about/sitemap.xml')) {
