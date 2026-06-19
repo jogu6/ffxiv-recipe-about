@@ -4,17 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{SITE_URL}}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{TITLE}}">
+  <meta property="og:title" content="{{TITLE}}">
+  <meta property="og:description" content="{{DESCRIPTION}}">
+  <meta property="og:url" content="{{SITE_URL}}">
+  <meta property="og:image" content="{{SITE_URL}}assets/app-icons/favicon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{TITLE}}">
+  <meta name="twitter:description" content="{{DESCRIPTION}}">
+  <script type="application/ld+json">{{STRUCTURED_DATA}}</script>
+  <link rel="icon" href="{{ROOT}}assets/app-icons/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="{{ROOT}}assets/app-icons/favicon.png">
   <link rel="stylesheet" href="{{ROOT}}assets/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <nav class="site-nav" aria-label="Site navigation">
-      {{NAV}}
-    </nav>
-  </header>
   {{CONTENT}}
-  <footer class="site-footer">
-    Generated: {{GENERATED_AT}}
-  </footer>
+  <div id="licenseOverlay" aria-hidden="true">
+    <div id="licenseDialog" role="dialog" aria-modal="true" aria-labelledby="licenseTitle">
+      <h2 id="licenseTitle">LICENSE / NOTICE</h2>
+      <div id="licenseText" class="document-text">{{LICENSE_NOTICE}}</div>
+      <div class="license-actions">
+        <button class="license-close" id="licenseCloseBtn" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer">© SQUARE ENIX / Data by XIVAPI / X : <a href="https://x.com/og_ff14" target="_blank" rel="noopener">@og_ff14</a></div>
+  <button class="top-button" type="button" aria-label="Topへ戻る" title="Topへ戻る">↑</button>
+  <div class="image-viewer" aria-hidden="true">
+    <div class="image-viewer-toolbar">
+      <button class="image-viewer-close" type="button">閉じる</button>
+    </div>
+    <div class="image-viewer-stage">
+      <img class="image-viewer-img" alt="">
+    </div>
+  </div>
+  <script src="{{ROOT}}assets/app.js"></script>
 </body>
 </html>
