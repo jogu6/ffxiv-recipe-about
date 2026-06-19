@@ -1,0 +1,12 @@
+{
+  "siteTitle": "FF14レシピ素材ツリー とは？",
+  "siteDescription": "FF14レシピ素材ツリーの概要、使い方、スマホ対応、素材ツリー表示やお気に入りリスト機能を紹介します。",
+  "siteUrl": "https://jogu6.github.io/ffxiv-recipe-about/",
+  "botToken": "DISCORD_BOT_TOKEN",
+  "guildId": "SERVER_ID",
+  "channelId": "CHANNEL_ID",
+  "channelTitle": "レシピ素材ツリー",
+  "outputDir": "docs",
+  "downloadImages": true,
+  "maxMessages": 100
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jogu6.github.io/ffxiv-recipe-about/sitemap.xml

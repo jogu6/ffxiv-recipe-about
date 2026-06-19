@@ -2,3 +2,16 @@ config.local.json
 data/cache/
 .DS_Store
 Thumbs.db
+
+# Node.js dependencies
+node_modules/
+
+# Playwright outputs
+test-results/
+playwright-report/
+
+# npm logs
+npm-debug.log*
+
+# Editor-local settings
+.vscode/
