@@ -33,6 +33,109 @@
     return img.naturalWidth > Math.ceil(rect.width) + 1;
   }
 
+  function getViewportFitHeight() {
+    const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+    const footerHeight = document.querySelector('.footer')?.getBoundingClientRect().height || 0;
+    return Math.max(220, viewportHeight - footerHeight - 18);
+  }
+
+  function fitPostImagesToViewport() {
+    const viewportFitHeight = getViewportFitHeight();
+    document.querySelectorAll('.post').forEach(post => {
+      const imageGrid = post.querySelector('.image-grid');
+      if (!imageGrid) return;
+
+      post.style.removeProperty('--post-image-max-height');
+
+      const postHeight = post.getBoundingClientRect().height;
+      const imageHeight = imageGrid.getBoundingClientRect().height;
+      const nonImageHeight = Math.max(0, postHeight - imageHeight);
+      const maxImageHeight = Math.floor(Math.max(96, viewportFitHeight - nonImageHeight - 2));
+      post.style.setProperty('--post-image-max-height', `${maxImageHeight}px`);
+    });
+  }
+
+  function getFrameDisplaySize(frame) {
+    const img = frame.querySelector('img');
+    if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+      return { width: 0, height: 0 };
+    }
+
+    const maxHeight = Number.parseFloat(getComputedStyle(img).maxHeight);
+    const parentWidth = frame.closest('.post')?.clientWidth || img.naturalWidth;
+    const maxWidth = Math.max(1, parentWidth);
+    const scale = Math.min(
+      1,
+      maxWidth / img.naturalWidth,
+      Number.isFinite(maxHeight) ? maxHeight / img.naturalHeight : 1
+    );
+    return {
+      width: Math.ceil(img.naturalWidth * scale),
+      height: Math.ceil(img.naturalHeight * scale)
+    };
+  }
+
+  function fitGalleryHeights() {
+    document.querySelectorAll('.image-grid.gallery-ready').forEach(gallery => {
+      const frames = getGalleryFrames(gallery);
+      const maxHeight = frames.reduce((height, frame) => {
+        return Math.max(height, getFrameDisplaySize(frame).height);
+      }, 0);
+      if (maxHeight > 0) {
+        gallery.style.setProperty('--gallery-viewport-height', `${maxHeight}px`);
+      }
+    });
+  }
+
+  function fitPostWidthsToWidest() {
+    document.querySelectorAll('.post-list').forEach(postList => {
+      const posts = Array.from(postList.querySelectorAll('.post'));
+      if (posts.length === 0) return;
+
+      postList.classList.remove('width-ready');
+      postList.style.removeProperty('--post-unified-width');
+
+      const maxWidth = posts.reduce((width, post) => {
+        const style = getComputedStyle(post);
+        const chromeWidth =
+          Number.parseFloat(style.paddingLeft) +
+          Number.parseFloat(style.paddingRight) +
+          Number.parseFloat(style.borderLeftWidth) +
+          Number.parseFloat(style.borderRightWidth);
+        const contentWidth = Array.from(post.children).reduce((childWidth, child) => {
+          if (child.classList.contains('image-grid') && child.classList.contains('gallery-ready')) {
+            const frameWidth = getGalleryFrames(child).reduce((galleryWidth, frame) => {
+              return Math.max(galleryWidth, getFrameDisplaySize(frame).width);
+            }, 0);
+            return Math.max(childWidth, frameWidth);
+          }
+          return Math.max(childWidth, Math.ceil(child.getBoundingClientRect().width));
+        }, 0);
+        return Math.max(width, Math.ceil(contentWidth + chromeWidth));
+      }, 0);
+
+      const availableWidth = postList.clientWidth;
+      const unifiedWidth = Math.min(maxWidth, availableWidth);
+      postList.style.setProperty('--post-unified-width', `${unifiedWidth}px`);
+      document.documentElement.style.setProperty('--content-unified-width', `${unifiedWidth}px`);
+      document.body.classList.add('layout-width-ready');
+      postList.classList.add('width-ready');
+    });
+  }
+
+  let layoutFrame = 0;
+  function refreshImageLayout() {
+    window.cancelAnimationFrame(layoutFrame);
+    layoutFrame = window.requestAnimationFrame(() => {
+      fitPostImagesToViewport();
+      fitGalleryHeights();
+      fitPostWidthsToWidest();
+      fitPostImagesToViewport();
+      fitGalleryHeights();
+      updateZoomButtons();
+    });
+  }
+
   function updateZoomButtons() {
     document.querySelectorAll('.image-frame').forEach(frame => {
       const img = frame.querySelector('img');
@@ -90,7 +193,7 @@
     const nextButton = gallery.querySelector('.gallery-next');
     if (prevButton) prevButton.disabled = index === 0;
     if (nextButton) nextButton.disabled = index === frames.length - 1;
-    updateZoomButtons();
+    refreshImageLayout();
   }
 
   function scrollGalleryTo(gallery, index, behavior = 'smooth') {
@@ -258,23 +361,22 @@
   }
 
   setupImageGalleries();
+  refreshImageLayout();
 
   document.querySelectorAll('.image-frame img').forEach(img => {
     if (img.complete) {
-      updateZoomButtons();
+      refreshImageLayout();
     } else {
-      img.addEventListener('load', updateZoomButtons, { once: true });
+      img.addEventListener('load', refreshImageLayout, { once: true });
     }
   });
 
   if ('ResizeObserver' in window) {
-    const resizeObserver = new ResizeObserver(updateZoomButtons);
+    const resizeObserver = new ResizeObserver(refreshImageLayout);
     document.querySelectorAll('.image-frame img').forEach(img => resizeObserver.observe(img));
   }
 
-  window.addEventListener('load', () => {
-    window.requestAnimationFrame(updateZoomButtons);
-  });
+  window.addEventListener('load', refreshImageLayout);
 
   document.addEventListener('click', event => {
     const zoomButton = event.target.closest('.zoom-button');
@@ -321,7 +423,8 @@
   });
   topButton?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   window.addEventListener('scroll', updateTopButton, { passive: true });
-  window.addEventListener('resize', updateZoomButtons);
+  window.addEventListener('resize', refreshImageLayout);
+  window.visualViewport?.addEventListener('resize', refreshImageLayout);
   window.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (licenseOverlay?.classList.contains('open')) {
@@ -332,7 +435,7 @@
   });
 
   updateTopButton();
-  updateZoomButtons();
+  refreshImageLayout();
 })();
 
 

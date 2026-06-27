@@ -43,10 +43,39 @@ a {
   color: inherit;
 }
 
+.discord-channel-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  min-height: 1.35em;
+  padding: 0 0.25em;
+  border-radius: 3px;
+  background: rgba(88, 101, 242, 0.22);
+  color: #d7dcff;
+  line-height: 1.25;
+  text-decoration: none;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.discord-channel-link:hover {
+  background: rgba(88, 101, 242, 0.34);
+  color: #fff;
+}
+
+.discord-channel-marker {
+  color: #b8c1ff;
+  font-weight: 700;
+}
+
 .page-heading {
   max-width: 960px;
   margin: 0 auto;
   padding: 22px 14px 12px;
+}
+
+body.layout-width-ready .page-heading {
+  width: min(var(--content-unified-width), calc(100% - 28px));
 }
 
 .heading-row {
@@ -130,7 +159,15 @@ a {
   padding: 0 14px 52px;
 }
 
+.post-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .post {
+  width: fit-content;
+  max-width: 100%;
   margin: 0 0 10px;
   padding: 12px;
   background: var(--surface);
@@ -138,7 +175,12 @@ a {
   border-radius: 4px;
 }
 
+.post-list.width-ready .post {
+  width: min(var(--post-unified-width), 100%);
+}
+
 .post p {
+  max-width: 68ch;
   margin: 0;
   color: var(--text);
   overflow-wrap: anywhere;
@@ -171,8 +213,10 @@ a {
 .image-frame img {
   display: block;
   max-width: 100%;
+  max-height: var(--post-image-max-height, none);
   width: auto;
   height: auto;
+  object-fit: contain;
 }
 
 .zoom-button {
@@ -213,6 +257,7 @@ a {
 .gallery-viewport {
   width: 100%;
   max-width: 100%;
+  height: var(--gallery-viewport-height, auto);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
@@ -233,8 +278,9 @@ a {
 
 .gallery-track {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
+  height: 100%;
 }
 .gallery-track img {
   pointer-events: none;

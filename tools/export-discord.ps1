@@ -58,7 +58,11 @@ function ConvertTo-SafeFileName {
 }
 
 function ConvertTo-HtmlText {
-    param([string]$Text)
+    param(
+        [string]$Text,
+        [string]$GuildId,
+        [hashtable]$ChannelLabels
+    )
 
     if ([string]::IsNullOrEmpty($Text)) {
         return ""
@@ -85,6 +89,28 @@ function ConvertTo-HtmlText {
         if ([string]::IsNullOrEmpty($href)) {
             [void]$builder.Append([System.Net.WebUtility]::HtmlEncode($url))
         } else {
+            if ($href -match '^https://(?:www\.)?x\.com/og_ff14/?$') {
+                $href = "https://x.com/ff14_recipe"
+            } elseif ($href -match '^https://discord\.gg/GAVwZ9Ca/?$') {
+                $href = "https://discord.gg/eZP5temK6e"
+            }
+
+            $discordChannelMatch = [regex]::Match($href, '^https://discord(?:app)?\.com/channels/(\d+)/(\d+)(?:/\d+)?/?$')
+            if ($discordChannelMatch.Success -and -not [string]::IsNullOrWhiteSpace($GuildId) -and $discordChannelMatch.Groups[1].Value -eq $GuildId) {
+                $linkedChannelId = $discordChannelMatch.Groups[2].Value
+                $channelName = if ($ChannelLabels -and $ChannelLabels.ContainsKey($linkedChannelId)) {
+                    [string]$ChannelLabels[$linkedChannelId]
+                } else {
+                    $linkedChannelId
+                }
+                $safeHref = [System.Net.WebUtility]::HtmlEncode($href)
+                $safeChannelName = [System.Net.WebUtility]::HtmlEncode($channelName)
+                $safeTrailing = [System.Net.WebUtility]::HtmlEncode($trailing)
+                [void]$builder.Append("<a class=`"discord-channel-link`" href=`"$safeHref`" target=`"_blank`" rel=`"noopener noreferrer`"><span class=`"discord-channel-marker`">#</span> $safeChannelName</a>$safeTrailing")
+                $lastIndex = $match.Index + $match.Length
+                continue
+            }
+
             $safeHref = [System.Net.WebUtility]::HtmlEncode($href)
             $safeTrailing = [System.Net.WebUtility]::HtmlEncode($trailing)
             [void]$builder.Append("<a href=`"$safeHref`" target=`"_blank`" rel=`"noopener noreferrer`">$safeHref</a>$safeTrailing")
@@ -98,6 +124,24 @@ function ConvertTo-HtmlText {
     }
 
     return ($builder.ToString() -replace "(`r`n|`n|`r)", "<br>")
+}
+
+function ConvertTo-ChannelLabelMap {
+    param($ConfiguredLabels)
+
+    $labels = @{
+        "1516701219828138054" = "シェアコード広場"
+    }
+
+    if ($null -ne $ConfiguredLabels) {
+        foreach ($property in $ConfiguredLabels.PSObject.Properties) {
+            if (-not [string]::IsNullOrWhiteSpace($property.Name) -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+                $labels[[string]$property.Name] = [string]$property.Value
+            }
+        }
+    }
+
+    return $labels
 }
 
 function ConvertTo-SiteUrl {
@@ -171,6 +215,28 @@ function ConvertTo-JsonLd {
     }
 
     return ($data | ConvertTo-Json -Depth 8 -Compress)
+}
+
+function ConvertTo-KeywordString {
+    param(
+        $Value,
+        [string[]]$DefaultKeywords
+    )
+
+    $keywords = @()
+    if ($null -ne $Value) {
+        if ($Value -is [array]) {
+            $keywords = @($Value | ForEach-Object { [string]$_ })
+        } else {
+            $keywords = @([string]$Value -split ',')
+        }
+    }
+    $keywords += $DefaultKeywords
+
+    return (($keywords |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -Unique) -join ", ")
 }
 
 function Save-RobotsTxt {
@@ -402,10 +468,29 @@ if ([string]::IsNullOrWhiteSpace($settings.botToken)) {
 $siteTitle = if ($settings.siteTitle) { [string]$settings.siteTitle } else { "FF14レシピ素材ツリー とは？" }
 $siteMetaTitle = if ($settings.siteMetaTitle) { [string]$settings.siteMetaTitle } else { "FF14レシピ素材ツリーとは？ 素材検索・レシピ逆引き・制作支援ツール紹介" }
 $siteDescription = if ($settings.siteDescription) { [string]$settings.siteDescription } else { "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FF14レシピ素材ツリー」の紹介ページです。スマホにも対応しています。" }
-$siteKeywords = if ($settings.siteKeywords) { [string]$settings.siteKeywords } else { "FF14, Final Fantasy XIV Online, FFXIV, レシピ, 素材, 素材ツリー, クラフター, 制作, 逆引き, お気に入り共有, スマホ対応" }
+$siteKeywords = ConvertTo-KeywordString -Value $settings.siteKeywords -DefaultKeywords @(
+    "FF14",
+    "Final Fantasy XIV Online",
+    "Final Fantasy XIV",
+    "FFXIV",
+    "レシピ",
+    "素材",
+    "素材ツリー",
+    "レシピ検索",
+    "素材検索",
+    "クラフター",
+    "ギャザラー",
+    "制作",
+    "中間素材",
+    "逆引き",
+    "お気に入り共有",
+    "スマホ対応"
+)
 $siteUrl = ConvertTo-SiteUrl $(if ($settings.siteUrl) { [string]$settings.siteUrl } else { "https://jogu6.github.io/ffxiv-recipe-about/" })
+$guildId = if ($settings.guildId) { [string]$settings.guildId } else { $null }
 $channelId = if ($settings.channelId) { [string]$settings.channelId } else { $null }
 $channelTitle = if ($settings.channelTitle) { [string]$settings.channelTitle } else { $siteTitle }
+$channelLabels = ConvertTo-ChannelLabelMap $settings.channelLabels
 $outputDirName = if ($settings.outputDir) { [string]$settings.outputDir } else { "docs" }
 $maxMessages = if ($settings.maxMessages) { [int]$settings.maxMessages } else { 100 }
 $downloadImages = if ($null -ne $settings.downloadImages) { [bool]$settings.downloadImages } else { $true }
@@ -487,7 +572,7 @@ foreach ($message in $messages) {
 
     $parts = @('<article class="post">')
     if ($hasText) {
-        $parts += "<p>$(ConvertTo-HtmlText $message.content)</p>"
+        $parts += "<p>$(ConvertTo-HtmlText -Text $message.content -GuildId $guildId -ChannelLabels $channelLabels)</p>"
     }
     if ($imageHtml.Count -gt 0) {
         $parts += '<div class="image-grid">'
