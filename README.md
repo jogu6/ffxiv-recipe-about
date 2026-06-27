@@ -188,7 +188,5 @@ Folder: /docs
 
 ## 運用メモ
 
-- Discord からの再取得は必要時だけ行います。
 - HTML、CSS、JS、SEOファイルだけ再生成する場合は `-NoFetch` を使います。
 - `tools/export-discord.ps1` は UTF-8 BOM + CRLF を維持します。
-- 動作テストだけのためにコミット/プッシュはしません。
