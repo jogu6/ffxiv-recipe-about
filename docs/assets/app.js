@@ -289,7 +289,9 @@
         const deltaX = event.clientX - dragStartX;
         if (Math.abs(deltaX) > 4) didDrag = true;
         dragLastDeltaX = deltaX;
-        viewport.scrollLeft = dragStartScrollLeft - deltaX;
+        const minScrollLeft = viewport.clientWidth * Math.max(0, dragStartIndex - 1);
+        const maxScrollLeft = viewport.clientWidth * Math.min(frames.length - 1, dragStartIndex + 1);
+        viewport.scrollLeft = Math.min(Math.max(dragStartScrollLeft - deltaX, minScrollLeft), maxScrollLeft);
         event.preventDefault();
       });
 
