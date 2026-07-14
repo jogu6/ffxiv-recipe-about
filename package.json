@@ -1,12 +1,13 @@
 {
   "name": "ff14-recipe-about",
-  "version": "1.0.0",
-  "description": "Discordの特定チャンネルからFF14レシピ素材ツリー紹介ページを生成する静的サイトです。",
+  "version": "2.0.0",
+  "description": "FF14 レシピ素材ツリーの機能と使い方を画面付きで紹介する静的ガイドサイトです。",
   "private": true,
   "scripts": {
+    "build": "node tools/build-site.mjs",
     "dev": "node tools/serve-site.mjs",
     "check": "npm run check:js && npm run check:site",
-    "check:js": "node --check docs/assets/app.js && node --check src/app.js && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs",
+    "check:js": "node --check docs/assets/guide.js && node --check src/guide/assets/guide.js && node --check tools/build-site.mjs && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs",
     "check:site": "node tools/validate-site.mjs",
     "test:e2e": "playwright test"
   },

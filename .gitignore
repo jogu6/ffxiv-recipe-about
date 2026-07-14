@@ -1,5 +1,8 @@
 config.local.json
 data/cache/
+archive/discord-site-generator/config.local.json
+archive/discord-site-generator/data/cache/
+archive/discord-site-generator/docs/
 .DS_Store
 Thumbs.db
 
