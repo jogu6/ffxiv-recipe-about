@@ -19,3 +19,7 @@ npm-debug.log*
 
 # Editor-local settings
 .vscode/
+
+# Machine-local Task Scheduler files
+tools/share-code-plaza-task.xml
+tools/run-share-code-plaza.vbs
