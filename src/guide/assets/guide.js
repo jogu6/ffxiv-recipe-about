@@ -1,4 +1,10 @@
 (() => {
+  const appOpenButton = document.querySelector(".app-open-button");
+  if (["127.0.0.1", "localhost"].includes(window.location.hostname)) {
+    appOpenButton.href = `http://${window.location.hostname}:4173/`;
+  } else {
+    appOpenButton.href = "https://jogu6.github.io/ffxiv-recipe/";
+  }
   const viewer = document.querySelector(".image-viewer");
   const stage = document.querySelector(".image-viewer-stage");
   const viewerImg = document.querySelector(".image-viewer-img");
