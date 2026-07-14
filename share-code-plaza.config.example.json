@@ -1,0 +1,7 @@
+{
+  "channelId": "SHARE_CODE_PLAZA_CHANNEL_ID",
+  "discordWebhookUrl": "https://discord.com/api/webhooks/ID/TOKEN",
+  "discordSourceLabel": "Discord「FF14レシピ素材ツリー」のテキストチャンネル「シェアコード広場」",
+  "itemDataUrl": "https://jogu6.github.io/ffxiv-recipe/data/Item.json",
+  "publicUrl": "https://jogu6.github.io/ffxiv-recipe-about/share-code-plaza.html"
+}

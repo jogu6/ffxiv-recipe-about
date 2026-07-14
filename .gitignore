@@ -1,4 +1,5 @@
 config.local.json
+share-code-plaza.local.json
 data/cache/
 archive/discord-site-generator/config.local.json
 archive/discord-site-generator/data/cache/

@@ -5,10 +5,12 @@
   "private": true,
   "scripts": {
     "build": "node tools/build-site.mjs",
+    "build:share-plaza": "node tools/share-code-plaza.mjs",
     "dev": "node tools/serve-site.mjs",
-    "check": "npm run check:js && npm run check:site",
-    "check:js": "node --check docs/assets/guide.js && node --check src/guide/assets/guide.js && node --check tools/build-site.mjs && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs",
+    "check": "npm run check:js && npm run check:site && npm run check:share-plaza",
+    "check:js": "node --check docs/assets/guide.js && node --check src/guide/assets/guide.js && node --check tools/build-site.mjs && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs && node --check tools/share-code-plaza.mjs && node --check tools/validate-share-code-plaza.mjs",
     "check:site": "node tools/validate-site.mjs",
+    "check:share-plaza": "node tools/validate-share-code-plaza.mjs && node --test test-unit/share-code-plaza.test.mjs",
     "test:e2e": "playwright test"
   },
   "repository": {

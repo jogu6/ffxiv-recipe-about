@@ -14,12 +14,27 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
   await expect(page.locator('#share')).toBeVisible();
   await expect(page.locator('.app-open-button')).toHaveAttribute(
     'href',
-    'https://jogu6.github.io/ffxiv-recipe/',
+    'http://127.0.0.1:4173/',
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
     'https://jogu6.github.io/ffxiv-recipe-about/',
   );
+});
+
+test('renders the standalone share code plaza safely', async ({ page }) => {
+  await page.goto('/share-code-plaza.html');
+  await expect(page).toHaveTitle('シェアコード広場');
+  await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
+  await expect(page.getByText(/Discord.*シェアコード広場.*転記/)).toBeVisible();
+  await expect(page.locator('footer')).toContainText('© SQUARE ENIX / Data: XIVAPI');
+  await page.getByRole('button', { name: 'LICENSE' }).click();
+  await expect(page.locator('#licenseOverlay')).toHaveClass(/open/);
+  await expect(page.locator('#licenseText')).toContainText('SQUARE ENIX');
+  await page.locator('#licenseCloseBtn').click();
+  await expect(page.locator('#licenseOverlay')).not.toHaveClass(/open/);
+  await page.getByRole('button', { name: '閉じる' }).click();
+  await expect(page).toHaveURL(/share-code-plaza\.html$/);
 });
 
 test('uses the table of contents to move to a guide section', async ({ page }) => {
