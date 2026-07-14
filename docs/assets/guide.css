@@ -354,7 +354,7 @@ footer {
   left: 0;
   z-index: 20;
   padding: 4px;
-  background: rgba(26, 26, 26, 0.9);
+  background: transparent;
   color: #888;
   text-align: center;
   font-size: 11px;
