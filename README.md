@@ -42,14 +42,16 @@ src/guide/                         ガイドの編集元
 docs/                              GitHub Pages公開物
 tools/
   build-site.mjs                   src/guideからdocsへ反映
+  capture-guide.mjs                WebアプリからPC・スマートフォン画像を生成
   serve-site.mjs                   ローカル配信
   validate-site.mjs                公開ファイルと参照の検証
 tests/
   app.spec.js                      Playwright E2Eテスト
+  guide.spec.js                    ガイド専用レスポンシブE2Eテスト
 archive/discord-site-generator/    旧Discord静的サイト生成技術
 ```
 
-`src/guide/` が正本です。`docs/index.html` と `docs/assets/` を直接編集せず、ビルド処理で反映します。
+ガイド本文・CSS・JavaScript・画像は、すべて `src/guide/` が正本です。`docs/index.html` と `docs/assets/` を直接編集せず、ビルド処理で反映します。
 
 ## セットアップ
 
@@ -70,6 +72,16 @@ npm run build
 
 `docs/robots.txt`、`docs/sitemap.xml`、Google所有権確認ファイルは維持されます。
 
+## ガイド画像の生成
+
+同じ親ディレクトリに `ffxiv-recipe` がある状態で実行します。
+
+```powershell
+npm run capture:guide
+```
+
+PC・スマートフォン画像は `src/guide/assets/images/` へ直接生成されます。確認用PNGはGit管理外の `guide-capture-output/` に保存されます。画像生成後は `npm run build` で公開物へ反映します。
+
 ## ローカル確認
 
 ```powershell
@@ -79,7 +91,7 @@ npm run dev
 ブラウザーで次を開きます。
 
 ```text
-http://127.0.0.1:4173/
+http://127.0.0.1:4174/
 ```
 
 ## 検証
@@ -117,8 +129,6 @@ archive/discord-site-generator/
 
 利用方法と秘密設定の注意事項は、同ディレクトリのREADMEを参照してください。このアーカイブは現在のガイド公開処理から独立しています。
 
-## 複製元について
+## Webアプリとの関係
 
-ガイド内容の複製元は別リポジトリの `ffxiv-recipe` プロジェクトです。
-
-このリポジトリから複製元のファイルを変更・追加・削除しないでください。
+ガイドの正本と公開物はこのリポジトリだけで管理します。別リポジトリの `ffxiv-recipe` は、ガイド画像を生成する際の表示対象となるWebアプリです。

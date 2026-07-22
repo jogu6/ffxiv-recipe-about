@@ -22,7 +22,8 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
   );
 });
 
-test('renders the standalone share code plaza safely', async ({ page }) => {
+test('renders the standalone share code plaza safely and copies a share code', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4174' });
   await page.goto('/share-code-plaza.html');
   await expect(page).toHaveTitle('シェアコード広場');
   await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
@@ -33,6 +34,20 @@ test('renders the standalone share code plaza safely', async ({ page }) => {
   await expect(page.locator('#licenseText')).toContainText('SQUARE ENIX');
   await page.locator('#licenseCloseBtn').click();
   await expect(page.locator('#licenseOverlay')).not.toHaveClass(/open/);
+  const firstCard = page.locator('.share-card').first();
+  const importButton = firstCard.getByRole('button', { name: 'シェアコードを取り込む' });
+  const copyButton = firstCard.locator('.copy-button');
+  await expect(firstCard.locator('.share-actions > button')).toHaveCount(2);
+  const importBox = await importButton.boundingBox();
+  const copyBox = await copyButton.boundingBox();
+  expect(importBox).toBeTruthy();
+  expect(copyBox).toBeTruthy();
+  expect(Math.abs(importBox.y - copyBox.y)).toBeLessThan(1);
+  const expectedCode = await importButton.getAttribute('data-code');
+  await copyButton.click();
+  await expect(copyButton).toHaveText('コピー済み');
+  await expect(firstCard.locator('.import-result')).toHaveText('シェアコードをコピーしました');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expectedCode);
   await page.getByRole('button', { name: '閉じる' }).click();
   await expect(page).toHaveURL(/share-code-plaza\.html$/);
 });

@@ -107,7 +107,7 @@
             <ol>
               <li><a href="#favorite-sort">並び替え</a></li>
               <li><a href="#favorite-count">個数指定</a></li>
-              <li><a href="#favorite-any-one">どれでも1つ</a></li>
+              <li><a href="#favorite-any-one">どれか1アイテム</a></li>
               <li><a href="#favorite-rings">指輪</a></li>
             </ol>
           </li>
@@ -116,11 +116,16 @@
             <ol>
               <li><a href="#combined-select">計算するリストをチェックする</a></li>
               <li><a href="#combined-sum">合算</a></li>
-              <li><a href="#combined-any-one">どれか一つだけ</a></li>
+              <li><a href="#combined-any-one">どれか1リスト</a></li>
               <li><a href="#combined-production">製作内容と指輪の数</a></li>
             </ol>
           </li>
-          <li><a href="#share">保存・共有する</a></li>
+          <li>
+            <a href="#share">保存・共有する</a>
+            <ol>
+              <li><a href="#share-plaza">シェアコード広場</a></li>
+            </ol>
+          </li>
           <li><a href="#window">小窓・PWAで使う</a></li>
           <li><a href="#notes">注意事項・設定</a></li>
         </ol>
@@ -615,7 +620,7 @@
               <img
                 src="assets/images/09-favorite-extensions.webp"
                 data-mobile-src="assets/images/mobile-09-favorite-extensions.webp"
-                alt="並び替え、個数指定、どれでも1つを表示した拡張機能画面"
+                alt="並び替え、個数指定、どれか1アイテムを表示した拡張機能画面"
                 loading="lazy"
               /><button
                 class="zoom-button"
@@ -625,7 +630,7 @@
                 ⌕
               </button>
               <figcaption>
-                ▼を開くと「並び替え」「個数指定」「どれでも1つ」と「?」が表示されます。
+                ▼を開くと「並び替え」「個数指定」「どれか1アイテム」と「?」が表示されます。
               </figcaption>
             </figure>
           </div>
@@ -730,16 +735,16 @@
               </div>
             </div>
             <div>
-              <h3 id="favorite-any-one">どれでも1つ</h3>
+              <h3 id="favorite-any-one">どれか1アイテム</h3>
               <span
-                >登録した候補をすべて作るのではなく、候補のうちどれか1つを作れる素材リストを確認する場合に使います。「どれでも1つ」を有効にし、比較したい候補をOnにします。「全てOn」「全てOff」で候補を一括変更できます。「素材リストを表示」を押すと、Onにした各候補を1つ作るための必要素材が「もしくは」で区切られます。「▼製作内容」で候補表示を折り畳めます。</span
+                >登録した候補をすべて作るのではなく、候補のうちどれか1つを作れる素材リストを確認する場合に使います。「どれか1アイテム」を有効にし、比較したい候補をOnにします。「全てOn」「全てOff」で候補を一括変更できます。「素材リストを表示」を押すと、Onにした各候補を1つ作るための必要素材が「もしくは」で区切られます。完成品が直接使う同じ末端素材と、同じ中間素材は、候補間の最大数を1回分だけ表示します。異なる中間素材はそれぞれ表示し、その製作に共通して使う末端素材は合算します。「▼製作内容」で候補表示を折り畳めます。</span
               >
               <div class="image-grid">
                 <figure class="image-frame">
                   <img
                     src="assets/images/13-favorite-any-one.webp"
                     data-mobile-src="assets/images/mobile-13-favorite-any-one.webp"
-                    alt="どれでも1つを有効にした画面"
+                    alt="どれか1アイテムを有効にした画面"
                     loading="lazy"
                   /><button
                     class="zoom-button"
@@ -756,7 +761,7 @@
                   <img
                     src="assets/images/17-favorite-any-one-result.webp"
                     data-mobile-src="assets/images/mobile-17-favorite-any-one-result.webp"
-                    alt="どれでも1つの候補別素材リスト"
+                    alt="どれか1アイテムの候補別素材リスト"
                     loading="lazy"
                   /><button
                     class="zoom-button"
@@ -773,7 +778,7 @@
                   <img
                     src="assets/images/41-favorite-any-one-production-collapsed.webp"
                     data-mobile-src="assets/images/mobile-41-favorite-any-one-production-collapsed.webp"
-                    alt="どれでも1つの製作内容を折り畳んだ素材リスト"
+                    alt="どれか1アイテムの製作内容を折り畳んだ素材リスト"
                     loading="lazy"
                   /><button
                     class="zoom-button"
@@ -827,7 +832,7 @@
             <li>表示されたチェックボックスへチェックを入れます。</li>
             <li>同じ操作で、ほかのリストにもチェックを入れます。</li>
             <li>
-              「合算」または「どれか一つだけ」を選び、「素材リストを表示」を押します。
+              「合算」または「どれか1リスト」を選び、「素材リストを表示」を押します。
             </li>
           </ol>
           <p>
@@ -914,7 +919,7 @@
                 ⌕
               </button>
               <figcaption>
-                「合算」と「どれか一つだけ」から計算方法を選びます。初期状態は「合算」です。
+                「合算」と「どれか1リスト」から計算方法を選びます。初期状態は「合算」です。
               </figcaption>
             </figure>
             <figure class="image-frame">
@@ -931,7 +936,7 @@
                 ⌕
               </button>
               <figcaption>
-                「？」を押すと、「合算」と「どれか一つだけ」の説明が表示されます。
+                「？」を押すと、「合算」と「どれか1リスト」の説明が表示されます。
               </figcaption>
             </figure>
           </div>
@@ -964,16 +969,16 @@
             </div>
 
             <div>
-              <h3 id="combined-any-one">どれか一つだけ</h3>
+              <h3 id="combined-any-one">どれか1リスト</h3>
               <span
-                >チェックしたお気に入りリストのうち、どれか1リストをセット数分製作するために必要な素材リストを表示します。チェックしたすべてのリストを製作する素材リストではありません。</span
+                >チェックしたお気に入りリストのうち、どれか1リストをセット数分製作するために必要な素材リストを表示します。チェックしたすべてのリストを製作する素材リストではありません。完成品が直接使う同じ末端素材は各リスト内で合算してから、リスト間の最大数を表示します。同じ中間素材もリスト間の最大数を1回分だけ表示します。異なる中間素材はそれぞれ表示し、その製作に共通して使う末端素材は合算します。</span
               >
               <div class="image-grid">
                 <figure class="image-frame">
                   <img
                     src="assets/images/37-combined-any-one-mode.webp"
                     data-mobile-src="assets/images/mobile-37-combined-any-one-mode.webp"
-                    alt="どれか一つだけを選択した複数リスト用拡張機能"
+                    alt="どれか1リストを選択した複数リスト用拡張機能"
                     loading="lazy"
                   /><button
                     class="zoom-button"
@@ -983,14 +988,14 @@
                     ⌕
                   </button>
                   <figcaption>
-                    「どれか一つだけ」を選び、「素材リストを表示」を押します。
+                    「どれか1リスト」を選び、「素材リストを表示」を押します。
                   </figcaption>
                 </figure>
                 <figure class="image-frame">
                   <img
                     src="assets/images/37-combined-any-one-result.webp"
                     data-mobile-src="assets/images/mobile-37-combined-any-one-result.webp"
-                    alt="どれか一つだけで表示した複数リストの素材リスト"
+                    alt="どれか1リストで表示した複数リストの素材リスト"
                     loading="lazy"
                   /><button
                     class="zoom-button"
@@ -1009,7 +1014,7 @@
             <div>
               <h3 id="combined-production">製作内容と指輪の数</h3>
               <span
-                >「合算」と「どれか一つだけ」のどちらでも、「▼製作内容」で対象リストを折り畳めます。指輪を含むリストでは、リストごとに指輪の製作数を0・1つ・2つから変更すると、必要素材が再計算されます。</span
+                >「合算」と「どれか1リスト」のどちらでも、「▼製作内容」で対象リストを折り畳めます。指輪を含むリストでは、リストごとに指輪の製作数を0・1つ・2つから変更すると、必要素材が再計算されます。</span
               >
               <div class="image-grid">
                 <figure class="image-frame">
@@ -1119,6 +1124,36 @@
                 受け取ったコードを貼り付けて「取り込む」を押します。
               </figcaption>
             </figure>
+          </div>
+          <div>
+            <h3 id="share-plaza">シェアコード広場</h3>
+            <p>
+              「⚙ 設定」の「シェアコード広場を開く」から、掲載されているお気に入りリストをアイテム名や画像と一緒に確認できます。Discordを開く必要はありません。
+            </p>
+            <ol class="instructions">
+              <li>「⚙ 設定」を開き、「シェアコード広場を開く」を押します。</li>
+              <li>お気に入りへ保存する場合は「シェアコードを取り込む」を押し、リスト名を確認します。</li>
+              <li>コードだけを別の場所で使う場合は、隣の「シェアコードをコピー」を押します。</li>
+            </ol>
+            <div class="image-grid">
+              <figure class="image-frame">
+                <img
+                  src="assets/images/42-share-code-plaza.webp"
+                  data-mobile-src="assets/images/mobile-42-share-code-plaza.webp"
+                  alt="取り込みボタンとコピーボタンを表示したシェアコード広場"
+                  loading="lazy"
+                /><button
+                  class="zoom-button"
+                  type="button"
+                  aria-label="画像を拡大"
+                >
+                  ⌕
+                </button>
+                <figcaption>
+                  各リストの「シェアコードを取り込む」と「シェアコードをコピー」を用途に応じて選びます。
+                </figcaption>
+              </figure>
+            </div>
           </div>
         </section>
 

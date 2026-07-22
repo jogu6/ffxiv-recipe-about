@@ -13,6 +13,7 @@ node_modules/
 # Playwright outputs
 test-results/
 playwright-report/
+guide-capture-output/
 
 # npm logs
 npm-debug.log*

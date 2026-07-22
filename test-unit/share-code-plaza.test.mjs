@@ -32,6 +32,8 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
   assert.ok(analyzed.records.every((record) => record.duplicate));
   const html = renderHtml(analyzed.records, 'Discordのシェアコード広場');
   assert.match(html, /flex-wrap:wrap/);
+  assert.match(html, /copy-button/);
+  assert.match(html, /シェアコードをコピー/);
   assert.match(html, /2026\/07\/15/);
   assert.doesNotMatch(html, />Z[0-9A-Z]+</);
 });

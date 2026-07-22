@@ -5,7 +5,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const file = path.join(root, 'docs', 'share-code-plaza.html');
 if (!fs.existsSync(file)) throw new Error('Missing docs/share-code-plaza.html');
 const html = fs.readFileSync(file, 'utf8');
-for (const snippet of ['data-generation-id=', 'data-entry-count=', 'シェアコード広場', 'ffxiv-share-code-import', 'ffxiv-share-code-plaza-close', 'LICENSE / NOTICE', '© SQUARE ENIX / Data: XIVAPI']) {
+for (const snippet of ['data-generation-id=', 'data-entry-count=', 'シェアコード広場', 'ffxiv-share-code-import', 'ffxiv-share-code-plaza-close', 'copy-button', 'シェアコードをコピー', 'LICENSE / NOTICE', '© SQUARE ENIX / Data: XIVAPI']) {
   if (!html.includes(snippet)) throw new Error(`share-code-plaza.html is missing: ${snippet}`);
 }
 console.log('Validated share-code-plaza.html.');
