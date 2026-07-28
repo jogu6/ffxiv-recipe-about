@@ -8,11 +8,12 @@
     "build:share-plaza": "node tools/share-code-plaza.mjs",
     "capture:guide": "node tools/capture-guide.mjs",
     "dev": "node tools/serve-site.mjs",
-    "check": "npm run check:js && npm run check:site && npm run check:share-plaza",
-    "check:js": "node --check docs/assets/guide.js && node --check src/guide/assets/guide.js && node --check tools/build-site.mjs && node --check tools/capture-guide.mjs && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs && node --check tools/share-code-plaza.mjs && node --check tools/validate-share-code-plaza.mjs",
+    "check": "npm run check:js && npm run check:site && npm run check:share-plaza && npm run check:e2e-config",
+    "check:js": "node --check docs/assets/guide.js && node --check src/guide/assets/guide.js && node --check tools/build-site.mjs && node --check tools/capture-guide.mjs && node --check tools/serve-site.mjs && node --check tools/validate-site.mjs && node --check tools/share-code-plaza.mjs && node --check tools/validate-share-code-plaza.mjs && node --check tools/run-e2e.mjs",
     "check:site": "node tools/validate-site.mjs",
     "check:share-plaza": "node tools/validate-share-code-plaza.mjs && node --test test-unit/share-code-plaza.test.mjs",
-    "test:e2e": "playwright test"
+    "check:e2e-config": "node --test test-unit/e2e-config.test.mjs",
+    "test:e2e": "node tools/run-e2e.mjs"
   },
   "repository": {
     "type": "git",

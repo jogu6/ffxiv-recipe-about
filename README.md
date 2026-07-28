@@ -46,8 +46,14 @@ tools/
   serve-site.mjs                   ローカル配信
   validate-site.mjs                公開ファイルと参照の検証
 tests/
-  app.spec.js                      Playwright E2Eテスト
-  guide.spec.js                    ガイド専用レスポンシブE2Eテスト
+  app.spec.js                      基本機能のPlaywright E2Eテスト
+  guide-content.spec.js            本文・LICENSE・404のE2Eテスト
+  guide-interactions.spec.js       目次・ギャラリー・画像操作のE2Eテスト
+  guide-layout.spec.js             PCレイアウトのE2Eテスト
+  guide-responsive.spec.js         600px幅とモバイル表示のE2Eテスト
+  helpers/                          E2E共通ヘルパー
+test-unit/
+  e2e-config.test.mjs              E2E安定設定の契約テスト
 archive/discord-site-generator/    旧Discord静的サイト生成技術
 ```
 
@@ -107,6 +113,8 @@ ChromiumでPC・600px幅、目次、ギャラリー、画像ビューアー、LI
 ```powershell
 npm run test:e2e
 ```
+
+Playwright設定は`playwright.config.js`へ集約し、`tools/run-e2e.mjs`から起動します。テストはファイル内逐次・ファイル間並列で、ローカルではCPUに応じて2～4ワーカー、CIでは2ワーカーを使用します。既定の4174番、または`E2E_PORT`で指定したポートに互換サーバーが動作済みの場合は再利用します。ワーカー数、fullyParallel、設定ファイルはコマンドラインから上書きできません。
 
 ## 公開
 
