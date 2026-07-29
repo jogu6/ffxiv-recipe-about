@@ -37,7 +37,7 @@ test("table of contents follows the guide content without duplicate or backward 
     "複数のお気に入りリストの素材を計算する",
     "保存・共有する",
     "小窓・PWAで使う",
-    "注意事項・設定",
+    "注意事項・その他",
   ]);
   await expect(page.locator(".post .step")).toHaveCount(0);
 
