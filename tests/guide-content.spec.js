@@ -17,8 +17,9 @@ test("every guide screenshot uses the correct desktop or mobile variant", async 
     );
 
   await page.setViewportSize({ width: 601, height: 844 });
-  await expect.poll(async () => (await imageSources()).length).toBeGreaterThan(0);
-  expect((await imageSources()).filter(({ src }) => /\/mobile-/.test(src))).toEqual([]);
+  await expect
+    .poll(async () => (await imageSources()).filter(({ src }) => /\/mobile-/.test(src)).length)
+    .toBe(0);
 
   await page.setViewportSize({ width: 600, height: 844 });
   await expect

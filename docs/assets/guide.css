@@ -8,6 +8,7 @@
   --text: #e0e0e0;
   --muted: #aaa;
   --active: #2a2a1a;
+  --guide-font-scale: 1.4;
 }
 * {
   box-sizing: border-box;
@@ -20,11 +21,13 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font:
-    14px/1.75 "Yu Gothic",
+  font-family:
+    "Yu Gothic",
     "Yu Gothic UI",
     Meiryo,
     sans-serif;
+  font-size: calc(14px * var(--guide-font-scale));
+  line-height: 1.75;
 }
 body.viewer-open {
   overflow: hidden;
@@ -49,7 +52,7 @@ a {
   gap: 8px;
   margin: 0;
   color: var(--accent);
-  font-size: 20px;
+  font-size: calc(20px * var(--guide-font-scale));
 }
 .page-heading h1 img,
 .app-open-button img {
@@ -69,7 +72,7 @@ button {
   background: var(--bg);
   color: var(--muted);
   padding: 3px 7px;
-  font-size: 10px;
+  font-size: calc(10px * var(--guide-font-scale));
   cursor: pointer;
 }
 .app-open-button {
@@ -89,7 +92,7 @@ button {
 }
 .guide-layout {
   display: grid;
-  grid-template-columns: 400px minmax(0, 1fr);
+  grid-template-columns: 430px minmax(0, 1fr);
   gap: 14px;
   max-width: 1400px;
   margin: auto;
@@ -164,7 +167,7 @@ button {
 .post h2 {
   margin: 0 0 8px;
   color: var(--accent);
-  font-size: 18px;
+  font-size: calc(18px * var(--guide-font-scale));
 }
 .share-code-example code {
   overflow-wrap: anywhere;
@@ -173,7 +176,7 @@ button {
 .post h3 {
   margin: 18px 0 6px;
   color: #f0d77d;
-  font-size: 15px;
+  font-size: calc(15px * var(--guide-font-scale));
 }
 .post p {
   margin: 0 0 10px;
@@ -186,7 +189,7 @@ button {
 .eyebrow,
 .step {
   color: var(--muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--guide-font-scale));
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -204,7 +207,7 @@ button {
 }
 .feature-grid span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--guide-font-scale));
 }
 .hint {
   padding: 8px 10px;
@@ -241,7 +244,7 @@ button {
 .image-frame figcaption {
   padding: 7px 9px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--guide-font-scale));
 }
 .zoom-button {
   position: absolute;
@@ -255,7 +258,9 @@ button {
   border-radius: 4px;
   background: rgba(37, 37, 37, 0.92);
   color: var(--accent);
-  font-size: 20px;
+  font-size: calc(20px * var(--guide-font-scale));
+  line-height: 1;
+  padding: 0;
   cursor: pointer;
 }
 .gallery-ready {
@@ -314,7 +319,7 @@ button {
   border-radius: 5px;
   background: rgba(26, 26, 26, 0.82);
   color: #f4d978;
-  font-size: 38px;
+  font-size: calc(38px * var(--guide-font-scale));
   line-height: 1;
   cursor: pointer;
   transition:
@@ -357,7 +362,7 @@ footer {
   background: transparent;
   color: #888;
   text-align: center;
-  font-size: 11px;
+  font-size: calc(11px * var(--guide-font-scale));
 }
 .top-button {
   position: fixed;
@@ -418,7 +423,7 @@ footer {
   border-radius: 50%;
   background: rgba(20, 20, 20, 0.68);
   color: #fff;
-  font-size: 22px;
+  font-size: calc(22px * var(--guide-font-scale));
   line-height: 1;
   cursor: pointer;
 }
@@ -462,14 +467,14 @@ footer {
 }
 #licenseDialog h2 {
   color: var(--accent);
-  font-size: 14px;
+  font-size: calc(14px * var(--guide-font-scale));
 }
 #licenseText {
   padding: 12px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--guide-font-scale));
 }
 .license-close {
   display: block;
@@ -482,13 +487,13 @@ footer {
 }
 @media (max-width: 840px) {
   body {
-    font-size: 13px;
+    font-size: calc(13px * var(--guide-font-scale));
   }
   .page-heading {
     padding: 14px 10px 10px;
   }
   .page-heading h1 {
-    font-size: 16px;
+    font-size: calc(16px * var(--guide-font-scale));
   }
   .guide-layout {
     display: block;

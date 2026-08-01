@@ -136,3 +136,17 @@ test("phone image viewer pinches between fit size and natural size", async ({
     touchPoints: [],
   });
 });
+
+test("desktop image viewer opens at natural size", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.locator("#search .zoom-button").first().click();
+  const image = page.locator(".image-viewer-img");
+  await expect(image).toHaveAttribute("data-scale", "1");
+  const size = await image.evaluate((element) => ({
+    renderedWidth: element.getBoundingClientRect().width,
+    naturalWidth: element.naturalWidth,
+    stageWidth: element.parentElement.clientWidth,
+  }));
+  expect(size.renderedWidth).toBeCloseTo(size.naturalWidth, 0);
+  expect(size.renderedWidth).toBeGreaterThan(size.stageWidth);
+});

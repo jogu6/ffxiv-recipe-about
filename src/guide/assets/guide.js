@@ -1,7 +1,8 @@
 (() => {
   const appOpenButton = document.querySelector(".app-open-button");
-  if (["127.0.0.1", "localhost"].includes(window.location.hostname)) {
-    appOpenButton.href = `http://${window.location.hostname}:4173/`;
+  const developmentSiteHosts = new Set(["127.0.0.1", "localhost", "192.168.11.2"]);
+  if (developmentSiteHosts.has(window.location.hostname) && window.location.port === "4174") {
+    appOpenButton.href = `${window.location.protocol}//${window.location.hostname}:4173/`;
   } else {
     appOpenButton.href = "https://jogu6.github.io/ffxiv-recipe/";
   }
@@ -175,7 +176,7 @@
       stage.clientWidth / viewerImg.naturalWidth,
       stage.clientHeight / viewerImg.naturalHeight,
     );
-    viewerScale = viewerMinScale;
+    viewerScale = mobileMedia.matches ? viewerMinScale : 1;
     viewerImg.style.width = `${viewerBaseWidth * viewerScale}px`;
     viewerImg.dataset.scale = String(viewerScale);
     stage.scrollTo(0, 0);

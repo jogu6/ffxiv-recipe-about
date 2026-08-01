@@ -8,6 +8,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const siteRoot = path.join(repositoryRoot, 'docs');
 const args = new Map(process.argv.slice(2).map((arg, index, all) => [arg, all[index + 1]]));
 const port = Number(args.get('--port') || process.env.PORT || 4173);
+const bindAddress = args.get('--bind') || process.env.BIND_ADDRESS || '127.0.0.1';
 
 const contentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -44,6 +45,6 @@ const server = http.createServer((request, response) => {
   fs.createReadStream(filePath).pipe(response);
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`Serving ${siteRoot} at http://127.0.0.1:${port}`);
+server.listen(port, bindAddress, () => {
+  console.log(`Serving ${siteRoot} on ${bindAddress}:${port}`);
 });
