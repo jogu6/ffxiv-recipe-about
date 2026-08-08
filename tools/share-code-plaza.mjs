@@ -8,6 +8,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const markerPrefix = '【シェアコード広場Bot】';
 const defaultPublicUrl = 'https://jogu6.github.io/ffxiv-recipe-about/share-code-plaza.html';
 const defaultItemDataUrl = 'https://jogu6.github.io/ffxiv-recipe/data/Item.json';
+const defaultLegacyItemDataUrl = 'https://jogu6.github.io/ffxiv-recipe/data/legacy-item-ids.json';
 
 function readArgs(argv) {
   const result = { publish: true, replies: true };
@@ -41,6 +42,7 @@ function loadConfig(args) {
     discordWebhookUrl: merged.discordWebhookUrl || monitorConfig.discordWebhookUrl || '',
     publicUrl: merged.publicUrl || defaultPublicUrl,
     itemDataUrl: merged.itemDataUrl || defaultItemDataUrl,
+    legacyItemDataUrl: merged.legacyItemDataUrl || defaultLegacyItemDataUrl,
   };
 }
 
@@ -79,47 +81,233 @@ async function fetchDiscordMessages(config) {
   return messages;
 }
 
-function decodeShareCode(code) {
-  const upper = String(code).toUpperCase();
+function normalizeListName(value) {
+  return String(value || '').trim().slice(0, 50);
+}
+
+function encodeVarUint(value) {
+  let remaining = Number(value);
+  if (!Number.isSafeInteger(remaining) || remaining < 0) throw new Error('可変長整数が不正です');
+  const bytes = [];
+  do {
+    let byte = remaining % 128;
+    remaining = Math.floor(remaining / 128);
+    if (remaining > 0) byte += 128;
+    bytes.push(byte);
+  } while (remaining > 0);
+  return bytes;
+}
+
+function decodeVarUint(bytes, state) {
+  let value = 0;
+  let multiplier = 1;
+  for (let count = 0; count < 8; count += 1) {
+    if (state.offset >= bytes.length) throw new Error('可変長整数が途中で終了しました');
+    const byte = bytes[state.offset++];
+    value += (byte & 0x7f) * multiplier;
+    if ((byte & 0x80) === 0) return value;
+    multiplier *= 128;
+  }
+  throw new Error('可変長整数が長すぎます');
+}
+
+function crc16Ccitt(bytes) {
+  let crc = 0xffff;
+  for (const byte of bytes) {
+    crc ^= byte << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return crc;
+}
+
+function base64UrlToBytes(value) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('文字列を復号できません');
+  return new Uint8Array(Buffer.from(value, 'base64url'));
+}
+
+function decodeCheckedPayload(code, prefix) {
+  const bytes = base64UrlToBytes(code.slice(1));
+  if (bytes.length < 5) throw new Error('コード長が正しくありません');
+  const payload = bytes.subarray(0, -2);
+  const checksum = (bytes.at(-2) << 8) | bytes.at(-1);
+  if (crc16Ccitt(payload) !== checksum) throw new Error('チェックサムが一致しません');
+  const state = { offset: 0 };
+  const version = payload[state.offset++];
+  if ((prefix === 'N' && version !== 2) || (prefix === 'Y' && version !== 1)) {
+    throw new Error('未対応のコード形式です');
+  }
+  return { payload, state };
+}
+
+function decodeNameShareCode(code) {
+  const { payload, state } = decodeCheckedPayload(code, 'N');
+  const nameLength = decodeVarUint(payload, state);
+  if (state.offset + nameLength > payload.length) throw new Error('リスト名が途中で終了しました');
+  const name = normalizeListName(new TextDecoder().decode(payload.subarray(state.offset, state.offset + nameLength)));
+  state.offset += nameLength;
+  const dictionaryCount = decodeVarUint(payload, state);
+  if (dictionaryCount > 10000) throw new Error('辞書件数が多すぎます');
+  const dictionary = [];
+  let previousBytes = new Uint8Array();
+  for (let index = 0; index < dictionaryCount; index += 1) {
+    const prefixLength = decodeVarUint(payload, state);
+    const suffixLength = decodeVarUint(payload, state);
+    if (prefixLength > previousBytes.length || state.offset + suffixLength > payload.length) {
+      throw new Error('アイテム名辞書が不正です');
+    }
+    const entryBytes = new Uint8Array(prefixLength + suffixLength);
+    entryBytes.set(previousBytes.subarray(0, prefixLength));
+    entryBytes.set(payload.subarray(state.offset, state.offset + suffixLength), prefixLength);
+    state.offset += suffixLength;
+    const entry = new TextDecoder('utf-8', { fatal: true }).decode(entryBytes);
+    if (!entry) throw new Error('アイテム名が空です');
+    dictionary.push(entry);
+    previousBytes = entryBytes;
+  }
+  const itemCount = decodeVarUint(payload, state);
+  if (itemCount > 10000) throw new Error('アイテム件数が多すぎます');
+  const itemKeys = [];
+  for (let index = 0; index < itemCount; index += 1) {
+    const dictionaryId = decodeVarUint(payload, state);
+    if (!dictionary[dictionaryId]) throw new Error('アイテム名辞書の参照が不正です');
+    itemKeys.push(dictionary[dictionaryId]);
+  }
+  const selectionCount = decodeVarUint(payload, state);
+  if (selectionCount > 10000) throw new Error('製作方法件数が多すぎます');
+  const selections = [];
+  for (let index = 0; index < selectionCount; index += 1) {
+    const packed = decodeVarUint(payload, state);
+    const itemName = dictionary[Math.floor(packed / 8)];
+    if (!itemName) throw new Error('製作方法の対象が不正です');
+    selections.push({ itemKey: itemName, craftType: packed % 8 });
+  }
+  if (state.offset !== payload.length || itemKeys.length === 0) throw new Error('リスト情報がありません');
+  return { sourceCode: code, name, itemKeys, selections };
+}
+
+function decodeCompactIdShareCode(code) {
+  const { payload, state } = decodeCheckedPayload(code, 'Y');
+  const nameLength = decodeVarUint(payload, state);
+  if (state.offset + nameLength > payload.length) throw new Error('リスト名が途中で終了しました');
+  const name = normalizeListName(new TextDecoder().decode(payload.subarray(state.offset, state.offset + nameLength)));
+  state.offset += nameLength;
+  const itemCount = decodeVarUint(payload, state);
+  if (itemCount > 10000) throw new Error('アイテム件数が多すぎます');
+  const itemKeys = [];
+  for (let index = 0; index < itemCount; index += 1) itemKeys.push(decodeVarUint(payload, state));
+  const selectionCount = decodeVarUint(payload, state);
+  if (selectionCount > 10000) throw new Error('製作方法件数が多すぎます');
+  const selections = [];
+  let previousItemId = 0;
+  for (let index = 0; index < selectionCount; index += 1) {
+    const packed = decodeVarUint(payload, state);
+    const itemId = previousItemId + Math.floor(packed / 8);
+    previousItemId = itemId;
+    selections.push({ itemKey: itemId, craftType: packed % 8 });
+  }
+  if (state.offset !== payload.length || itemKeys.length === 0) throw new Error('リスト情報がありません');
+  return { sourceCode: code, name, itemKeys, selections };
+}
+
+function decodeJsonShareCode(code) {
+  const upper = code.toUpperCase();
   if (!/^Z[0-9A-Z]+$/.test(upper) || upper.length < 5) throw new Error('形式が正しくありません');
   const byteLength = Number.parseInt(upper.slice(1, 5), 36);
-  if (!Number.isInteger(byteLength) || upper.length !== 5 + byteLength * 2) {
-    throw new Error('コード長が正しくありません');
-  }
+  if (!Number.isInteger(byteLength) || upper.length !== 5 + byteLength * 2) throw new Error('コード長が正しくありません');
   const bytes = new Uint8Array(byteLength);
-  for (let i = 0; i < byteLength; i += 1) {
-    const value = Number.parseInt(upper.slice(5 + i * 2, 7 + i * 2), 36);
+  for (let index = 0; index < byteLength; index += 1) {
+    const value = Number.parseInt(upper.slice(5 + index * 2, 7 + index * 2), 36);
     if (!Number.isInteger(value) || value < 0 || value > 255) throw new Error('文字列を復号できません');
-    bytes[i] = value;
+    bytes[index] = value;
   }
-  let payload;
+  let decoded;
   try {
-    payload = JSON.parse(new TextDecoder().decode(bytes));
+    decoded = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     throw new Error('内容を復号できません');
   }
-  if (typeof payload.n !== 'string' || !Array.isArray(payload.i) || payload.i.length === 0) {
+  if (typeof decoded.n !== 'string' || !Array.isArray(decoded.i) || decoded.i.length === 0) {
     throw new Error('リスト情報がありません');
   }
-  const itemIds = [...new Set(payload.i.map(Number))];
-  if (itemIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error('アイテムIDが正しくありません');
-  return { code: upper, name: payload.n.trim().slice(0, 50), itemIds };
+  return { sourceCode: upper, name: normalizeListName(decoded.n), itemKeys: decoded.i, selections: [] };
+}
+
+function decodeShareCode(value) {
+  const code = String(value || '').trim();
+  if (code.startsWith('N')) return decodeNameShareCode(code);
+  if (code.startsWith('Y')) return decodeCompactIdShareCode(code);
+  if (code.toUpperCase().startsWith('Z')) return decodeJsonShareCode(code);
+  throw new Error('形式が正しくありません');
+}
+
+function encodeLatestShareCode({ name, itemNames, selections = [] }) {
+  const normalizedItems = [...new Set(itemNames.map(String).filter(Boolean))];
+  if (normalizedItems.length === 0) throw new Error('リスト情報がありません');
+  const normalizedSelections = [...new Map(selections.filter(selection =>
+    selection.itemName && Number.isInteger(selection.craftType) && selection.craftType >= 0 && selection.craftType < 8
+  ).map(selection => [selection.itemName, selection])).values()];
+  const dictionary = [...new Set([...normalizedItems, ...normalizedSelections.map(selection => selection.itemName)])].sort();
+  const dictionaryIndex = new Map(dictionary.map((itemName, index) => [itemName, index]));
+  const nameBytes = new TextEncoder().encode(normalizeListName(name));
+  const payload = [2, ...encodeVarUint(nameBytes.length), ...nameBytes, ...encodeVarUint(dictionary.length)];
+  let previousBytes = new Uint8Array();
+  for (const itemName of dictionary) {
+    const bytes = new TextEncoder().encode(itemName);
+    let prefixLength = 0;
+    while (prefixLength < previousBytes.length && prefixLength < bytes.length && previousBytes[prefixLength] === bytes[prefixLength]) {
+      prefixLength += 1;
+    }
+    while (prefixLength > 0 && (bytes[prefixLength] & 0xc0) === 0x80) prefixLength -= 1;
+    const suffix = bytes.subarray(prefixLength);
+    payload.push(...encodeVarUint(prefixLength), ...encodeVarUint(suffix.length), ...suffix);
+    previousBytes = bytes;
+  }
+  payload.push(...encodeVarUint(normalizedItems.length));
+  normalizedItems.forEach(itemName => payload.push(...encodeVarUint(dictionaryIndex.get(itemName))));
+  payload.push(...encodeVarUint(normalizedSelections.length));
+  normalizedSelections.forEach(selection => {
+    payload.push(...encodeVarUint(dictionaryIndex.get(selection.itemName) * 8 + selection.craftType));
+  });
+  const checksum = crc16Ccitt(payload);
+  return `N${Buffer.from(Uint8Array.from([...payload, checksum >> 8, checksum & 0xff])).toString('base64url')}`;
 }
 
 function extractCandidates(content) {
-  return [...String(content || '').matchAll(/(?:^|[^0-9A-Z])(Z[0-9A-Z]+)/gi)].map((match) => match[1]);
+  return [...String(content || '').matchAll(/(?:^|[^A-Za-z0-9_-])([NY][A-Za-z0-9_-]+|Z[0-9A-Za-z]+)/g)].map(match => match[1]);
 }
 
 function indexItems(rawItems) {
-  const map = new Map();
-  for (const item of rawItems) {
+  const byName = new Map();
+  const byId = new Map();
+  for (const item of rawItems?.Items || rawItems || []) {
+    const name = String(item.Name || '').trim();
     const id = Number(item.ID ?? item.Id ?? item.id);
-    if (Number.isInteger(id) && id > 0) map.set(id, item);
+    if (name) byName.set(name, item);
+    if (Number.isInteger(id) && id > 0) byId.set(id, item);
   }
-  return map;
+  return { byName, byId };
 }
 
-function analyzeMessages(messages, itemMap, botId = '') {
+function indexLegacyItemNames(rawItems) {
+  const result = new Map();
+  Object.entries(rawItems?.Items || rawItems || {}).forEach(([id, name]) => {
+    const numericId = Number(id);
+    if (Number.isInteger(numericId) && numericId > 0 && name) result.set(numericId, String(name));
+  });
+  return result;
+}
+
+function resolveItemName(itemKey, itemIndex, legacyItemNames) {
+  const directName = typeof itemKey === 'string' ? itemKey.trim() : '';
+  if (directName && itemIndex.byName.has(directName)) return directName;
+  const itemId = Number(itemKey);
+  if (!Number.isInteger(itemId) || itemId <= 0) return '';
+  return String(itemIndex.byId.get(itemId)?.Name || legacyItemNames.get(itemId) || '');
+}
+
+function analyzeMessages(messages, itemIndex, botId = '', legacyItemNames = new Map()) {
   const records = [];
   const results = new Map();
   for (const message of messages) {
@@ -130,14 +318,37 @@ function analyzeMessages(messages, itemMap, botId = '') {
     candidates.forEach((candidate, index) => {
       try {
         const decoded = decodeShareCode(candidate);
-        const missing = decoded.itemIds.filter((id) => !itemMap.has(id));
-        if (missing.length > 0) throw new Error(`未登録のアイテムIDが含まれています（${missing.join(', ')}）`);
-        const items = decoded.itemIds.map((id) => {
-          const item = itemMap.get(id);
-          return { id, name: String(item.Name || id), iconFile: String(item.IconFile || '') };
+        const itemNames = decoded.itemKeys.map(itemKey => resolveItemName(itemKey, itemIndex, legacyItemNames));
+        const missing = decoded.itemKeys.filter((itemKey, itemIndexValue) =>
+          !itemNames[itemIndexValue] || !itemIndex.byName.has(itemNames[itemIndexValue])
+        );
+        if (missing.length > 0) throw new Error(`未登録のアイテムが含まれています（${missing.join(', ')}）`);
+        const items = [...new Set(itemNames)].map(name => {
+          const item = itemIndex.byName.get(name);
+          return { name, iconFile: String(item.IconFile || '') };
         });
+        const explicitSelections = decoded.selections.map(selection => ({
+          itemName: resolveItemName(selection.itemKey, itemIndex, legacyItemNames),
+          craftType: selection.craftType,
+        })).filter(selection => selection.itemName && itemIndex.byName.has(selection.itemName));
+        const selectionsByName = new Map(explicitSelections.map(selection => [selection.itemName, selection]));
+        for (const itemName of itemNames) {
+          if (selectionsByName.has(itemName)) continue;
+          const item = itemIndex.byName.get(itemName);
+          if (!Array.isArray(item?.Recipes) || item.Recipes.length < 2) continue;
+          const craftType = Number(item.Recipe?.CraftType);
+          if (Number.isInteger(craftType) && craftType >= 0 && craftType < 8) {
+            selectionsByName.set(itemName, { itemName, craftType });
+          }
+        }
+        const selections = [...selectionsByName.values()];
+        const latestCode = encodeLatestShareCode({ name: decoded.name, itemNames, selections });
         const record = {
-          ...decoded,
+          code: latestCode,
+          originalCode: decoded.sourceCode,
+          name: decoded.name,
+          itemNames,
+          selections,
           items,
           messageId: String(message.id),
           timestamp: message.timestamp,
@@ -203,18 +414,19 @@ function renderHtml(records, sourceLabel) {
 </style></head>
 <body><main class="page"><section class="top"><div class="title-row"><h1>シェアコード広場</h1><div class="title-actions"><button class="license-button" id="licenseBtn" type="button">LICENSE</button><button id="closeButton" class="close-button" type="button">閉じる</button></div></div><p class="description">このページは、${escapeHtml(sourceLabel)}へ投稿されたシェアコードを転記したものです。掲載内容は定期的に更新されます。</p></section><section class="share-list">${body}</section></main>
 <div id="licenseOverlay" aria-hidden="true"><div id="licenseDialog" role="dialog" aria-modal="true" aria-labelledby="licenseTitle"><h2 id="licenseTitle">LICENSE / NOTICE</h2><div id="licenseText"><p>The MIT License applies only to the original application source code and project tooling in this repository.</p><p>FINAL FANTASY XIV images, names, item and recipe data, trademarks, and other game-derived materials are owned by SQUARE ENIX.</p><p>This project is unofficial and is not affiliated with, sponsored by, approved by, or endorsed by SQUARE ENIX.</p></div><button class="license-close" id="licenseCloseBtn" type="button">閉じる</button></div></div>
-<footer>© SQUARE ENIX / Data: XIVAPI / X: <a href="https://x.com/ff14_recipe" target="_blank" rel="noopener">@ff14_recipe</a></footer>
+<footer>© SQUARE ENIX / Data: Lodestone / X: <a href="https://x.com/ff14_recipe" target="_blank" rel="noopener">@ff14_recipe</a></footer>
 <script>
 const closeButton=document.querySelector('#closeButton');
 const licenseOverlay=document.querySelector('#licenseOverlay');
 document.querySelectorAll('.import-button').forEach(importButton=>{const actions=document.createElement('div');actions.className='share-actions';importButton.before(actions);actions.append(importButton);const copyButton=document.createElement('button');copyButton.className='copy-button';copyButton.type='button';copyButton.dataset.code=importButton.dataset.code;copyButton.textContent='シェアコードをコピー';actions.append(copyButton)});
-async function copyShareCode(code){if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(code);return}const input=document.createElement('textarea');input.value=code;input.setAttribute('readonly','');input.style.cssText='position:fixed;opacity:0';document.body.append(input);input.select();const copied=document.execCommand('copy');input.remove();if(!copied)throw new Error('copy failed')}
+function copyShareCodeWithSelection(code){const input=document.createElement('textarea');input.value=code;input.setAttribute('readonly','');input.style.cssText='position:fixed;inset:0 auto auto 0;width:1px;height:1px;opacity:0;pointer-events:none';document.body.append(input);input.focus();input.select();input.setSelectionRange(0,input.value.length);let copied=false;try{copied=document.execCommand('copy')}catch{}input.remove();return copied}
+async function copyShareCode(code){try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(code);return true}}catch{}return copyShareCodeWithSelection(code)}
 closeButton.addEventListener('click',()=>{if(window.parent!==window)window.parent.postMessage({type:'ffxiv-share-code-plaza-close'},'*')});
 document.querySelector('#licenseBtn').addEventListener('click',()=>{licenseOverlay.classList.add('open');licenseOverlay.setAttribute('aria-hidden','false')});
 document.querySelector('#licenseCloseBtn').addEventListener('click',()=>{licenseOverlay.classList.remove('open');licenseOverlay.setAttribute('aria-hidden','true')});
 licenseOverlay.addEventListener('click',event=>{if(event.target===licenseOverlay)document.querySelector('#licenseCloseBtn').click()});
 document.addEventListener('click',event=>{const button=event.target.closest('.import-button');if(!button||window.parent===window)return;button.closest('.share-card').querySelector('.import-result').textContent='';window.parent.postMessage({type:'ffxiv-share-code-import',code:button.dataset.code},'*')});
-document.addEventListener('click',async event=>{const button=event.target.closest('.copy-button');if(!button)return;const result=button.closest('.share-card').querySelector('.import-result');try{await copyShareCode(button.dataset.code);button.textContent='コピー済み';result.textContent='シェアコードをコピーしました';window.setTimeout(()=>{button.textContent='シェアコードをコピー'},1500)}catch{result.textContent='シェアコードをコピーできませんでした'}});
+document.addEventListener('click',async event=>{const button=event.target.closest('.copy-button');if(!button)return;const result=button.closest('.share-card').querySelector('.import-result');const copied=await copyShareCode(button.dataset.code);if(copied){button.textContent='コピー済み';result.textContent='シェアコードをコピーしました';window.setTimeout(()=>{button.textContent='シェアコードをコピー'},1500)}else{result.textContent='シェアコードをコピーできませんでした'}});
 window.addEventListener('message',event=>{if(!event.data||event.data.type!=='ffxiv-share-code-imported')return;const active=document.activeElement?.closest?.('.share-card');const result=active?.querySelector('.import-result');if(result)result.textContent='「'+event.data.listName+'」を保存しました';});
 </script></body></html>`;
   const generationId = crypto.createHash('sha256').update(html).digest('hex');
@@ -346,8 +558,19 @@ async function main() {
       if (!response.ok) throw new Error(`Item.json fetch failed: ${response.status}`);
       return response.json();
     });
-  const { records, results } = analyzeMessages(messages, indexItems(rawItems), botId);
-  const html = renderHtml(records, config.discordSourceLabel || 'Discord「FF14レシピ素材ツリー」のテキストチャンネル「シェアコード広場」');
+  const rawLegacyItems = args['legacy-items']
+    ? readJson(path.resolve(args['legacy-items']))
+    : await request(config.legacyItemDataUrl, { cache: 'no-store' }).then((response) => {
+      if (!response.ok) throw new Error(`legacy-item-ids.json fetch failed: ${response.status}`);
+      return response.json();
+    });
+  const { records, results } = analyzeMessages(
+    messages,
+    indexItems(rawItems),
+    botId,
+    indexLegacyItemNames(rawLegacyItems),
+  );
+  const html = renderHtml(records, config.discordSourceLabel || 'Discord「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」のテキストチャンネル「シェアコード広場」');
   const previous = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
   const changed = previous !== html;
   if (changed) {
@@ -389,4 +612,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
   }
 }
 
-export { analyzeMessages, decodeShareCode, extractCandidates, indexItems, renderHtml };
+export {
+  analyzeMessages,
+  decodeShareCode,
+  encodeLatestShareCode,
+  extractCandidates,
+  indexItems,
+  indexLegacyItemNames,
+  renderHtml,
+};

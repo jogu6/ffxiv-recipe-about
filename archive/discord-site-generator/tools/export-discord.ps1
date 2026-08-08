@@ -176,9 +176,9 @@ function ConvertTo-JsonLd {
                 "@id" = "$($SiteUrl)#website"
                 name = $Title
                 alternateName = @(
-                    "FF14レシピ素材ツリー",
-                    "Final Fantasy XIV Online レシピ素材ツリー",
-                    "FFXIV レシピ素材ツリー"
+                    "XIVca",
+                    "シヴカ",
+                    "FinalFantasy XIV Crafting Assistant"
                 )
                 headline = $MetaTitle
                 description = $Description
@@ -194,10 +194,10 @@ function ConvertTo-JsonLd {
             [ordered]@{
                 "@type" = "WebApplication"
                 "@id" = "$($SiteUrl)#webapp"
-                name = "FF14レシピ素材ツリー"
+                name = "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)"
                 alternateName = @(
-                    "Final Fantasy XIV Online レシピ素材ツリー",
-                    "FFXIV レシピ素材ツリー"
+                    "XIVca",
+                    "シヴカ"
                 )
                 description = $Description
                 applicationCategory = "GameApplication"
@@ -465,9 +465,9 @@ if ([string]::IsNullOrWhiteSpace($settings.botToken)) {
     throw "botToken is required in config."
 }
 
-$siteTitle = if ($settings.siteTitle) { [string]$settings.siteTitle } else { "FF14レシピ素材ツリー とは？" }
-$siteMetaTitle = if ($settings.siteMetaTitle) { [string]$settings.siteMetaTitle } else { "FF14レシピ素材ツリーとは？ 素材検索・レシピ逆引き・制作支援ツール紹介" }
-$siteDescription = if ($settings.siteDescription) { [string]$settings.siteDescription } else { "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FF14レシピ素材ツリー」の紹介ページです。スマホにも対応しています。" }
+$siteTitle = if ($settings.siteTitle) { [string]$settings.siteTitle } else { "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ) とは？" }
+$siteMetaTitle = if ($settings.siteMetaTitle) { [string]$settings.siteMetaTitle } else { "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)とは？ 素材検索・レシピ逆引き・制作支援ツール紹介" }
+$siteDescription = if ($settings.siteDescription) { [string]$settings.siteDescription } else { "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」の紹介ページです。スマホにも対応しています。" }
 $siteKeywords = ConvertTo-KeywordString -Value $settings.siteKeywords -DefaultKeywords @(
     "FF14",
     "Final Fantasy XIV Online",

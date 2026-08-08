@@ -1,7 +1,7 @@
 {
   "name": "ff14-recipe-about",
   "version": "2.0.0",
-  "description": "FF14 レシピ素材ツリーの機能と使い方を画面付きで紹介する静的ガイドサイトです。",
+  "description": "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)の機能と使い方を画面付きで紹介する静的ガイドサイトです。",
   "private": true,
   "scripts": {
     "build": "node tools/build-site.mjs",

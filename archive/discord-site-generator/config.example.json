@@ -1,7 +1,7 @@
 {
-  "siteTitle": "FF14レシピ素材ツリー とは？",
-  "siteMetaTitle": "FF14レシピ素材ツリーとは？ 素材検索・レシピ逆引き・制作支援ツール紹介",
-  "siteDescription": "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FF14レシピ素材ツリー」の紹介ページです。スマホにも対応しています。",
+  "siteTitle": "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ) とは？",
+  "siteMetaTitle": "FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)とは？ 素材検索・レシピ逆引き・制作支援ツール紹介",
+  "siteDescription": "FF14 / Final Fantasy XIV Online / FFXIV のクラフター制作に必要な素材を、レシピツリー、素材リスト、逆引き、お気に入り共有で確認できるWebツール「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」の紹介ページです。スマホにも対応しています。",
   "siteKeywords": [
     "FF14",
     "Final Fantasy XIV Online",
@@ -27,7 +27,7 @@
   "channelLabels": {
     "1516701219828138054": "シェアコード広場"
   },
-  "channelTitle": "レシピ素材ツリー",
+  "channelTitle": "XIVca(シヴカ)",
   "outputDir": "docs",
   "downloadImages": true,
   "maxMessages": 100

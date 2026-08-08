@@ -3,8 +3,9 @@ const { expect, test } = require('@playwright/test');
 test('renders the guide, metadata, and main navigation', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page).toHaveTitle('FF14 レシピ素材ツリー｜使い方ガイド');
-  await expect(page.locator('h1')).toContainText('FF14 レシピ素材ツリー 使い方ガイド');
+  await expect(page).toHaveTitle('FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)｜使い方ガイド');
+  await expect(page.locator('h1')).toContainText('使い方ガイド');
+  await expect(page.locator('.xivca-wordmark')).toHaveAttribute('alt', 'FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)');
   await expect(page.locator('#overview')).toBeVisible();
   await expect(page.locator('#search')).toBeVisible();
   await expect(page.locator('#equipment')).toBeVisible();
@@ -28,7 +29,7 @@ test('renders the standalone share code plaza safely and copies a share code', a
   await expect(page).toHaveTitle('シェアコード広場');
   await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
   await expect(page.getByText(/Discord.*シェアコード広場.*転記/)).toBeVisible();
-  await expect(page.locator('footer')).toContainText('© SQUARE ENIX / Data: XIVAPI');
+  await expect(page.locator('footer')).toContainText('© SQUARE ENIX / Data: Lodestone');
   await page.getByRole('button', { name: 'LICENSE' }).click();
   await expect(page.locator('#licenseOverlay')).toHaveClass(/open/);
   await expect(page.locator('#licenseText')).toContainText('SQUARE ENIX');
@@ -44,6 +45,7 @@ test('renders the standalone share code plaza safely and copies a share code', a
   expect(copyBox).toBeTruthy();
   expect(Math.abs(importBox.y - copyBox.y)).toBeLessThan(1);
   const expectedCode = await importButton.getAttribute('data-code');
+  expect(expectedCode).toMatch(/^N[A-Za-z0-9_-]+$/);
   await copyButton.click();
   await expect(copyButton).toHaveText('コピー済み');
   await expect(firstCard.locator('.import-result')).toHaveText('シェアコードをコピーしました');

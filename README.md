@@ -1,6 +1,6 @@
-# FF14 レシピ素材ツリー 使い方ガイド
+# FinalFantasy XIV® Crafting Assistant XIVca(シヴカ) 使い方ガイド
 
-「FF14 レシピ素材ツリー」の機能と使い方を、PC・スマートフォンの画面付きで紹介する静的ガイドサイトです。
+「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」の機能と使い方を、PC・スマートフォンの画面付きで紹介する静的ガイドサイトです。
 
 公開ページ:
 

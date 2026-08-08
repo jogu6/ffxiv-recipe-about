@@ -54,10 +54,20 @@ a {
   color: var(--accent);
   font-size: calc(20px * var(--guide-font-scale));
 }
-.page-heading h1 img,
+.page-heading-icon,
 .app-open-button img {
   width: 1.5em;
   height: 1.5em;
+}
+.guide-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.xivca-wordmark {
+  display: block;
+  width: auto;
+  height: clamp(72px, 8vw, 112px);
 }
 .page-heading > p {
   margin: 8px 0;
@@ -494,6 +504,12 @@ footer {
   }
   .page-heading h1 {
     font-size: calc(16px * var(--guide-font-scale));
+  }
+  .guide-brand {
+    gap: 8px;
+  }
+  .xivca-wordmark {
+    height: 64px;
   }
   .guide-layout {
     display: block;
