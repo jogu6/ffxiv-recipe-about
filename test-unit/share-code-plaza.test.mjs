@@ -44,7 +44,8 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
     { id: '1', content: code, timestamp: '2026-07-13T00:00:00Z', edited_timestamp: '2026-07-15T00:00:00Z', author: { id: 'a' } },
     { id: '2', content: code, timestamp: '2026-07-14T00:00:00Z', edited_timestamp: null, author: { id: 'b' } },
   ];
-  const analyzed = analyzeMessages(messages, indexItems([{ Name: '装備A', IconFile: '010000.webp' }]), 'bot');
+  const iconFile = '0123456789abcdefabcd-0123456789ab.webp';
+  const analyzed = analyzeMessages(messages, indexItems([{ Name: '装備A', IconFile: iconFile }]), 'bot');
   assert.equal(analyzed.records[0].messageId, '1');
   assert.ok(analyzed.records.every((record) => record.duplicate));
   assert.deepEqual(extractCandidates(`説明\n${code}`), [code]);
@@ -54,6 +55,8 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
   assert.match(html, /シェアコードをコピー/);
   assert.match(html, /data-code="N[A-Za-z0-9_-]+"/);
   assert.match(html, /Data: Lodestone/);
+  assert.match(html, new RegExp(`/012/${iconFile.replace('.', '\\.')}"`));
+  assert.match(html, /iconRetryKey/);
   assert.match(html, /2026\/07\/15/);
   assert.doesNotMatch(html, />Z[0-9A-Z]+</);
 });

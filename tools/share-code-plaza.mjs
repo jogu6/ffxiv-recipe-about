@@ -418,6 +418,8 @@ function renderHtml(records, sourceLabel) {
 <script>
 const closeButton=document.querySelector('#closeButton');
 const licenseOverlay=document.querySelector('#licenseOverlay');
+const iconRetryKey=document.documentElement.dataset.generationId;
+document.querySelectorAll('.item-list img').forEach(image=>{let retried=false;const retry=()=>{if(retried)return;retried=true;const url=new URL(image.src);url.searchParams.set('retry',iconRetryKey);window.setTimeout(()=>{image.hidden=false;image.src=url.href},500)};image.addEventListener('load',()=>{image.hidden=false});image.addEventListener('error',retry,{once:true});if(image.complete&&image.naturalWidth===0)retry()});
 document.querySelectorAll('.import-button').forEach(importButton=>{const actions=document.createElement('div');actions.className='share-actions';importButton.before(actions);actions.append(importButton);const copyButton=document.createElement('button');copyButton.className='copy-button';copyButton.type='button';copyButton.dataset.code=importButton.dataset.code;copyButton.textContent='シェアコードをコピー';actions.append(copyButton)});
 function copyShareCodeWithSelection(code){const input=document.createElement('textarea');input.value=code;input.setAttribute('readonly','');input.style.cssText='position:fixed;inset:0 auto auto 0;width:1px;height:1px;opacity:0;pointer-events:none';document.body.append(input);input.focus();input.select();input.setSelectionRange(0,input.value.length);let copied=false;try{copied=document.execCommand('copy')}catch{}input.remove();return copied}
 async function copyShareCode(code){try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(code);return true}}catch{}return copyShareCodeWithSelection(code)}
