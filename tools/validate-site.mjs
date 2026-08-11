@@ -57,7 +57,7 @@ const sitemap = fs.readFileSync(requireFile(siteRoot, 'sitemap.xml'), 'utf8');
 
 for (const snippet of [
   '<html lang="ja">',
-  '<title>FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)｜使い方ガイド</title>',
+  '<title>XIVca | 使い方ガイド</title>',
   '<meta name="robots" content="index, follow, max-image-preview:large" />',
   '<link rel="canonical" href="https://jogu6.github.io/ffxiv-recipe-about/" />',
   '<meta property="og:title"',

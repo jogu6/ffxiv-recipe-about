@@ -3,7 +3,7 @@ const { expect, test } = require('@playwright/test');
 test('renders the guide, metadata, and main navigation', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page).toHaveTitle('FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)｜使い方ガイド');
+  await expect(page).toHaveTitle('XIVca | 使い方ガイド');
   await expect(page.locator('h1')).toContainText('使い方ガイド');
   await expect(page.locator('.xivca-wordmark')).toHaveAttribute('alt', 'FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)');
   await expect(page.locator('#overview')).toBeVisible();
@@ -26,7 +26,7 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
 test('renders the standalone share code plaza safely and copies a share code', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4174' });
   await page.goto('/share-code-plaza.html');
-  await expect(page).toHaveTitle('シェアコード広場');
+  await expect(page).toHaveTitle('XIVca | シェアコード広場');
   await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
   await expect(page.getByText(/Discord.*シェアコード広場.*転記/)).toBeVisible();
   await expect(page.locator('footer')).toContainText('© SQUARE ENIX / Data: Lodestone');

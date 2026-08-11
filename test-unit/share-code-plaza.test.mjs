@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   analyzeMessages,
+  assertNoMissingReachableSelections,
   decodeShareCode,
   encodeLatestShareCode,
   extractCandidates,
@@ -59,4 +60,58 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
   assert.match(html, /iconRetryKey/);
   assert.match(html, /2026\/07\/15/);
   assert.doesNotMatch(html, />Z[0-9A-Z]+</);
+});
+
+test('fills recipe selections for reachable multi-recipe ingredients recursively', () => {
+  const code = encodeLatestShareCode({ name: '完成品', itemNames: ['完成品'] });
+  const items = [
+    {
+      Name: '完成品',
+      Recipe: { CraftType: '0', Ingredients: [{ Name: '中間素材' }] },
+      Recipes: [{ CraftType: '0', Ingredients: [{ Name: '中間素材' }] }],
+    },
+    {
+      Name: '中間素材',
+      Recipe: { CraftType: '3', Ingredients: [{ Name: '末端素材' }] },
+      Recipes: [
+        { CraftType: '2', Ingredients: [{ Name: '別素材' }] },
+        { CraftType: '3', Ingredients: [{ Name: '末端素材' }] },
+      ],
+    },
+    { Name: '末端素材' },
+    { Name: '別素材' },
+  ];
+  const analyzed = analyzeMessages([
+    { id: 'recursive', content: code, timestamp: '2026-08-11T00:00:00Z', author: { id: 'user' } },
+  ], indexItems(items), 'bot');
+
+  assert.deepEqual(decodeShareCode(analyzed.records[0].code).selections, [
+    { itemKey: '中間素材', craftType: 3 },
+  ]);
+  assert.doesNotThrow(() => assertNoMissingReachableSelections(analyzed.records, indexItems(items)));
+});
+
+test('blocks publication when a reachable multi-recipe item cannot be assigned a valid method', () => {
+  const code = encodeLatestShareCode({ name: '完成品', itemNames: ['完成品'] });
+  const items = [
+    {
+      Name: '完成品',
+      Recipe: { CraftType: '0', Ingredients: [{ Name: '不正な中間素材' }] },
+      Recipes: [{ CraftType: '0', Ingredients: [{ Name: '不正な中間素材' }] }],
+    },
+    {
+      Name: '不正な中間素材',
+      Recipe: { CraftType: '9' },
+      Recipes: [{ CraftType: '9' }, { CraftType: '10' }],
+    },
+  ];
+  const itemIndex = indexItems(items);
+  const analyzed = analyzeMessages([
+    { id: 'invalid-method', content: code, timestamp: '2026-08-11T00:00:00Z', author: { id: 'user' } },
+  ], itemIndex, 'bot');
+
+  assert.throws(
+    () => assertNoMissingReachableSelections(analyzed.records, itemIndex),
+    /製作方法が未指定.*不正な中間素材/,
+  );
 });

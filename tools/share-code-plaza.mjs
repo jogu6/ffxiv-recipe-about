@@ -307,6 +307,70 @@ function resolveItemName(itemKey, itemIndex, legacyItemNames) {
   return String(itemIndex.byId.get(itemId)?.Name || legacyItemNames.get(itemId) || '');
 }
 
+function selectedRecipe(item, selection) {
+  const variants = Array.isArray(item?.Recipes) ? item.Recipes : [];
+  if (selection) {
+    const selected = variants.find(recipe => Number(recipe?.CraftType) === selection.craftType);
+    if (selected) return selected;
+  }
+  return item?.Recipe || variants[0] || null;
+}
+
+function completeReachableSelections(itemNames, selectionsByName, itemIndex) {
+  const visited = new Set();
+  const visit = (itemName) => {
+    if (!itemName || visited.has(itemName)) return;
+    visited.add(itemName);
+    const item = itemIndex.byName.get(itemName);
+    if (!item) return;
+    if (!selectionsByName.has(itemName) && Array.isArray(item.Recipes) && item.Recipes.length >= 2) {
+      const craftType = Number(item.Recipe?.CraftType);
+      if (Number.isInteger(craftType) && craftType >= 0 && craftType < 8) {
+        selectionsByName.set(itemName, { itemName, craftType });
+      }
+    }
+    const recipe = selectedRecipe(item, selectionsByName.get(itemName));
+    for (const ingredient of recipe?.Ingredients || []) {
+      const ingredientName = resolveItemName(ingredient.Name || ingredient.ItemID, itemIndex, new Map());
+      visit(ingredientName);
+    }
+  };
+  itemNames.forEach(visit);
+  return selectionsByName;
+}
+
+function findMissingReachableSelections(itemNames, selectionsByName, itemIndex) {
+  const missing = new Set();
+  const visited = new Set();
+  const visit = (itemName) => {
+    if (!itemName || visited.has(itemName)) return;
+    visited.add(itemName);
+    const item = itemIndex.byName.get(itemName);
+    if (!item) return;
+    const variants = Array.isArray(item.Recipes) ? item.Recipes : [];
+    const selection = selectionsByName.get(itemName);
+    if (variants.length >= 2 && !variants.some(recipe => Number(recipe?.CraftType) === selection?.craftType)) {
+      missing.add(itemName);
+    }
+    const recipe = selectedRecipe(item, selection);
+    for (const ingredient of recipe?.Ingredients || []) {
+      visit(resolveItemName(ingredient.Name || ingredient.ItemID, itemIndex, new Map()));
+    }
+  };
+  itemNames.forEach(visit);
+  return [...missing];
+}
+
+function assertNoMissingReachableSelections(records, itemIndex) {
+  for (const record of records) {
+    const selectionsByName = new Map(record.selections.map(selection => [selection.itemName, selection]));
+    const missing = findMissingReachableSelections(record.itemNames, selectionsByName, itemIndex);
+    if (missing.length > 0) {
+      throw new Error(`製作方法が未指定の到達可能アイテムがあります（${missing.join('、')}）`);
+    }
+  }
+}
+
 function analyzeMessages(messages, itemIndex, botId = '', legacyItemNames = new Map()) {
   const records = [];
   const results = new Map();
@@ -332,15 +396,7 @@ function analyzeMessages(messages, itemIndex, botId = '', legacyItemNames = new 
           craftType: selection.craftType,
         })).filter(selection => selection.itemName && itemIndex.byName.has(selection.itemName));
         const selectionsByName = new Map(explicitSelections.map(selection => [selection.itemName, selection]));
-        for (const itemName of itemNames) {
-          if (selectionsByName.has(itemName)) continue;
-          const item = itemIndex.byName.get(itemName);
-          if (!Array.isArray(item?.Recipes) || item.Recipes.length < 2) continue;
-          const craftType = Number(item.Recipe?.CraftType);
-          if (Number.isInteger(craftType) && craftType >= 0 && craftType < 8) {
-            selectionsByName.set(itemName, { itemName, craftType });
-          }
-        }
+        completeReachableSelections(itemNames, selectionsByName, itemIndex);
         const selections = [...selectionsByName.values()];
         const latestCode = encodeLatestShareCode({ name: decoded.name, itemNames, selections });
         const record = {
@@ -407,7 +463,7 @@ function renderHtml(records, sourceLabel) {
   const body = cards || '<p class="empty">現在掲載されているシェアコードはありません。</p>';
   const html = `<!doctype html>
 <html lang="ja" data-generation-id="__GENERATION_ID__" data-entry-count="${records.length}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><title>シェアコード広場</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><title>XIVca | シェアコード広場</title>
 <style>
 :root{color-scheme:dark;--bg:#151515;--surface:#202020;--surface2:#282828;--border:#444;--text:#eee;--muted:#aaa;--accent:#d8b45a;--danger:#d77}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}body{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(42px,calc(env(safe-area-inset-bottom) + 26px)) max(12px,env(safe-area-inset-left))}.page{width:min(920px,100%);margin:auto}.top{position:sticky;top:0;z-index:2;margin:-12px -4px 14px;padding:12px 4px;background:linear-gradient(var(--bg) 82%,transparent)}.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.title-actions{display:flex;align-items:center;gap:7px}h1{margin:0;color:var(--accent);font-size:20px}.license-button{border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);padding:3px 7px;font-size:10px;cursor:pointer}.close-button,.import-button,.copy-button{border:1px solid var(--border);border-radius:5px;background:#292929;color:var(--text);padding:8px 14px;cursor:pointer}.close-button:hover,.import-button:hover,.copy-button:hover,.license-button:hover{border-color:var(--accent);color:var(--accent)}.description{margin:10px 0 0;color:var(--muted);font-size:13px;line-height:1.7}.share-list{display:grid;gap:12px}.share-card{min-width:0;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:7px}.share-card header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}.share-card h2{min-width:0;margin:0;color:var(--accent);font-size:17px;overflow-wrap:anywhere}.share-card time{flex:none;color:var(--muted);font-size:12px}.item-list{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin:0 0 12px;padding:0;list-style:none}.item-list li{display:flex;flex:0 1 116px;flex-direction:column;align-items:center;gap:5px;min-width:72px;padding:7px 5px;background:var(--surface2);border-radius:4px;font-size:12px;text-align:center}.item-list img{width:40px;height:40px;flex:none;border-radius:3px}.item-list span{width:100%;overflow-wrap:anywhere}.share-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.import-button,.copy-button{width:100%}.import-button{background:#302b1e;border-color:#665832}.import-result{min-height:1.2em;margin:7px 0 0;color:var(--accent);font-size:12px;text-align:center}.empty{padding:30px;text-align:center;color:var(--muted)}footer{position:fixed;right:0;bottom:0;left:0;z-index:20;padding:4px;background:transparent;color:#888;text-align:center;font-size:11px}footer a{color:var(--accent)}#licenseOverlay{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.76)}#licenseOverlay.open{display:flex}#licenseDialog{width:min(640px,100%);padding:20px 24px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}#licenseDialog h2{margin-top:0;color:var(--accent);font-size:14px}#licenseText{padding:12px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:12px;line-height:1.6}.license-close{display:block;margin:14px auto 0;padding:6px 18px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);cursor:pointer}
 @media(max-width:600px){body{padding-left:8px;padding-right:8px}.top{margin-left:0;margin-right:0}.title-row{align-items:center}h1{font-size:17px}.close-button{padding:7px 11px}.share-card{padding:10px}.share-card header{display:block}.share-card time{display:block;margin-top:4px}.item-list li{flex-basis:92px}.item-list img{width:44px;height:44px}}
@@ -566,12 +622,14 @@ async function main() {
       if (!response.ok) throw new Error(`legacy-item-ids.json fetch failed: ${response.status}`);
       return response.json();
     });
+  const itemIndex = indexItems(rawItems);
   const { records, results } = analyzeMessages(
     messages,
-    indexItems(rawItems),
+    itemIndex,
     botId,
     indexLegacyItemNames(rawLegacyItems),
   );
+  assertNoMissingReachableSelections(records, itemIndex);
   const html = renderHtml(records, config.discordSourceLabel || 'Discord「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」のテキストチャンネル「シェアコード広場」');
   const previous = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
   const changed = previous !== html;
@@ -616,6 +674,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
 
 export {
   analyzeMessages,
+  assertNoMissingReachableSelections,
+  completeReachableSelections,
   decodeShareCode,
   encodeLatestShareCode,
   extractCandidates,
