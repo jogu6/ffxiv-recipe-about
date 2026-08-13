@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import {
   analyzeMessages,
@@ -9,6 +12,7 @@ import {
   indexItems,
   indexLegacyItemNames,
   renderHtml,
+  syncShareCodePlazaIcons,
 } from '../tools/share-code-plaza.mjs';
 
 function encode(payload) {
@@ -51,6 +55,9 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
   assert.ok(analyzed.records.every((record) => record.duplicate));
   assert.deepEqual(extractCandidates(`説明\n${code}`), [code]);
   const html = renderHtml(analyzed.records, 'Discordのシェアコード広場');
+  assert.match(html, /Discordの「シェアコード広場」へ投稿されたお気に入りリストを掲載しています。/);
+  assert.match(html, /掲載内容は定期的にDiscordから反映されます。/);
+  assert.doesNotMatch(html, /Discordのシェアコード広場へ投稿/);
   assert.match(html, /flex-wrap:wrap/);
   assert.match(html, /copy-button/);
   assert.match(html, /シェアコードをコピー/);
@@ -60,6 +67,31 @@ test('sorts by edited timestamp, marks duplicates, and renders horizontal icon i
   assert.match(html, /iconRetryKey/);
   assert.match(html, /2026\/07\/15/);
   assert.doesNotMatch(html, />Z[0-9A-Z]+</);
+});
+
+test('publishes only the item icons referenced by the current plaza', () => {
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xivca-share-icons-'));
+  const sourceRoot = path.join(temporaryRoot, 'source');
+  const outputRoot = path.join(temporaryRoot, 'output');
+  const current = '0123456789abcdefabcd-0123456789ab.webp';
+  const stale = 'abcdef0123456789abcd-abcdef012345.webp';
+  try {
+    for (const file of [current, stale]) {
+      const source = path.join(sourceRoot, file.slice(0, 3), file);
+      fs.mkdirSync(path.dirname(source), { recursive: true });
+      fs.writeFileSync(source, Buffer.from(file));
+    }
+    const staleOutput = path.join(outputRoot, stale.slice(0, 3), stale);
+    fs.mkdirSync(path.dirname(staleOutput), { recursive: true });
+    fs.writeFileSync(staleOutput, Buffer.from(stale));
+
+    assert.deepEqual(syncShareCodePlazaIcons([current], { sourceRoot, outputRoot }), { changed: true, count: 1 });
+    assert.equal(fs.existsSync(path.join(outputRoot, current.slice(0, 3), current)), true);
+    assert.equal(fs.existsSync(staleOutput), false);
+    assert.deepEqual(syncShareCodePlazaIcons([current], { sourceRoot, outputRoot }), { changed: false, count: 1 });
+  } finally {
+    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test('fills recipe selections for reachable multi-recipe ingredients recursively', () => {

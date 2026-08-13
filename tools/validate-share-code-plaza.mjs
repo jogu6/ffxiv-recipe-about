@@ -12,6 +12,22 @@ const shareCodes = [...html.matchAll(/data-code="([^"]+)"/g)].map(match => match
 if (shareCodes.some(code => !/^N[A-Za-z0-9_-]+$/.test(code))) {
   throw new Error('share-code-plaza.html contains a share code older than the current name-key format.');
 }
+const iconReferences = [...html.matchAll(/src="\.\/assets\/item-icons\/([0-9a-f]{3})\/([0-9a-f]{20}-[0-9a-f]{12}\.webp)"/gu)];
+if (html.includes('ffxiv-recipe/assets/item-icons/')) {
+  throw new Error('share-code-plaza.html must not depend on the application site individual item icons.');
+}
+for (const [, folder, fileName] of iconReferences) {
+  if (folder !== fileName.slice(0, 3)) throw new Error(`Invalid share plaza item icon folder: ${folder}/${fileName}`);
+  const iconPath = path.join(root, 'docs', 'assets', 'item-icons', folder, fileName);
+  if (!fs.existsSync(iconPath)) throw new Error(`Missing share plaza item icon: ${folder}/${fileName}`);
+}
+const publishedIconRoot = path.join(root, 'docs', 'assets', 'item-icons');
+const publishedIcons = fs.existsSync(publishedIconRoot)
+  ? fs.readdirSync(publishedIconRoot, { recursive: true, withFileTypes: true }).filter(entry => entry.isFile() && entry.name.endsWith('.webp'))
+  : [];
+if (publishedIcons.length !== new Set(iconReferences.map(match => match[2])).size) {
+  throw new Error('docs/assets/item-icons must contain only the images referenced by share-code-plaza.html.');
+}
 console.log('Validated share-code-plaza.html.');
 
 const taskXmlPath = path.join(root, 'tools', 'share-code-plaza-task.xml');

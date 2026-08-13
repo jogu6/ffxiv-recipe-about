@@ -28,7 +28,7 @@ test('renders the standalone share code plaza safely and copies a share code', a
   await page.goto('/share-code-plaza.html');
   await expect(page).toHaveTitle('XIVca | シェアコード広場');
   await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
-  await expect(page.getByText(/Discord.*シェアコード広場.*転記/)).toBeVisible();
+  await expect(page.getByText('Discordの「シェアコード広場」へ投稿されたお気に入りリストを掲載しています。アイテム内容を確認し、そのままXIVcaへ取り込むか、シェアコードをコピーできます。掲載内容は定期的にDiscordから反映されます。', { exact: true })).toBeVisible();
   await expect(page.locator('footer')).toContainText('© SQUARE ENIX / Data: Lodestone');
   await page.getByRole('button', { name: 'LICENSE' }).click();
   await expect(page.locator('#licenseOverlay')).toHaveClass(/open/);

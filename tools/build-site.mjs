@@ -41,13 +41,16 @@ assertInside(repositoryRoot, siteRoot);
 assertInside(siteRoot, siteAssets);
 
 fs.copyFileSync(path.join(sourceRoot, 'index.html'), path.join(siteRoot, 'index.html'));
-fs.rmSync(siteAssets, { recursive: true, force: true });
+for (const entry of fs.readdirSync(siteAssets, { withFileTypes: true })) {
+  if (entry.name === 'item-icons') continue;
+  fs.rmSync(path.join(siteAssets, entry.name), { recursive: true, force: true });
+}
 fs.cpSync(sourceAssets, siteAssets, { recursive: true });
 
 const sourceFiles = listFiles(sourceRoot).sort();
 const publishedFiles = [
   'index.html',
-  ...listFiles(siteAssets).map((file) => `assets/${file}`),
+  ...listFiles(siteAssets).filter((file) => !file.startsWith('item-icons/')).map((file) => `assets/${file}`),
 ].sort();
 
 if (JSON.stringify(sourceFiles) !== JSON.stringify(publishedFiles)) {

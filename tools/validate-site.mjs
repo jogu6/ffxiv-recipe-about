@@ -100,7 +100,7 @@ if (missingReferences.length > 0) {
 
 const sourceFiles = listFiles(sourceRoot).sort();
 const publishedFiles = listFiles(siteRoot)
-  .filter((file) => file === 'index.html' || file.startsWith('assets/'))
+  .filter((file) => file === 'index.html' || (file.startsWith('assets/') && !file.startsWith('assets/item-icons/')))
   .sort();
 if (JSON.stringify(sourceFiles) !== JSON.stringify(publishedFiles)) {
   throw new Error('src/guide and the published guide contain different file lists.');

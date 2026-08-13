@@ -16,6 +16,7 @@ function readArgs(argv) {
     const arg = argv[i];
     if (arg === '--no-publish') result.publish = false;
     else if (arg === '--no-replies') result.replies = false;
+    else if (arg === '--sync-icons-only') result.syncIconsOnly = true;
     else if (arg.startsWith('--')) result[arg.slice(2)] = argv[++i];
   }
   return result;
@@ -444,7 +445,124 @@ function formatDate(value) {
 
 function iconUrl(iconFile) {
   if (!iconFile) return '';
-  return `https://jogu6.github.io/ffxiv-recipe/assets/item-icons/${iconFile.slice(0, 3)}/${encodeURIComponent(iconFile)}`;
+  return `./assets/item-icons/${iconFile.slice(0, 3)}/${encodeURIComponent(iconFile)}`;
+}
+
+function iconFilesFromRecords(records) {
+  return [...new Set(records.flatMap(record => record.items || []).map(item => item.iconFile).filter(Boolean))].sort();
+}
+
+function iconFilesFromHtml(html) {
+  return [...new Set([...String(html).matchAll(/item-icons\/[0-9a-f]{3}\/([0-9a-f]{20}-[0-9a-f]{12}\.webp)/gu)]
+    .map(match => match[1]))].sort();
+}
+
+function relativeIconFile(iconFile) {
+  if (!/^[0-9a-f]{20}-[0-9a-f]{12}\.webp$/u.test(iconFile)) throw new Error(`Invalid item icon filename: ${iconFile}`);
+  return path.join(iconFile.slice(0, 3), iconFile);
+}
+
+function fileTree(rootPath) {
+  if (!fs.existsSync(rootPath)) return new Map();
+  const files = new Map();
+  for (const entry of fs.readdirSync(rootPath, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const parent = entry.parentPath || entry.path;
+    const absolute = path.join(parent, entry.name);
+    files.set(path.relative(rootPath, absolute).replaceAll('\\', '/'), fs.readFileSync(absolute));
+  }
+  return files;
+}
+
+function sameFileTree(left, right) {
+  if (left.size !== right.size) return false;
+  for (const [name, bytes] of left) if (!right.get(name)?.equals(bytes)) return false;
+  return true;
+}
+
+function ensureItemIconSource(iconFiles, sourceRoot) {
+  const missing = iconFiles.filter(iconFile => !fs.existsSync(path.join(sourceRoot, relativeIconFile(iconFile))));
+  if (missing.length === 0) return;
+  const applicationRoot = path.resolve(root, '..', 'ffxiv-recipe');
+  const pipelineTool = path.join(applicationRoot, 'pipeline', 'tool', 'pipeline-tool.mjs');
+  if (!fs.existsSync(pipelineTool)) {
+    throw new Error(`XIVcaの画像パイプラインがありません: ${pipelineTool}`);
+  }
+  const result = spawnSync(process.execPath, [pipelineTool, 'item-icon-cache'], {
+    cwd: applicationRoot,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) throw new Error(`個別画像キャッシュを準備できませんでした: ${(result.stderr || result.stdout).trim()}`);
+  const remaining = iconFiles.filter(iconFile => !fs.existsSync(path.join(sourceRoot, relativeIconFile(iconFile))));
+  if (remaining.length > 0) throw new Error(`シェアコード広場用画像がありません: ${remaining.slice(0, 10).join(', ')}`);
+}
+
+function syncShareCodePlazaIcons(iconFiles, {
+  sourceRoot = path.resolve(root, '..', 'ffxiv-recipe', 'pipeline', 'cache', 'item-icons-webp'),
+  outputRoot = path.join(root, 'docs', 'assets', 'item-icons'),
+} = {}) {
+  ensureItemIconSource(iconFiles, sourceRoot);
+  const parent = path.dirname(outputRoot);
+  fs.mkdirSync(parent, { recursive: true });
+  const temporaryRoot = path.join(parent, `.item-icons-${process.pid}.tmp`);
+  const backupRoot = path.join(parent, `.item-icons-${process.pid}.backup`);
+  fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  fs.rmSync(backupRoot, { recursive: true, force: true });
+  fs.mkdirSync(temporaryRoot, { recursive: true });
+  try {
+    for (const iconFile of iconFiles) {
+      const relative = relativeIconFile(iconFile);
+      const source = path.join(sourceRoot, relative);
+      const target = path.join(temporaryRoot, relative);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(source, target);
+    }
+    const changed = !sameFileTree(fileTree(temporaryRoot), fileTree(outputRoot));
+    if (!changed) {
+      fs.rmSync(temporaryRoot, { recursive: true, force: true });
+      return { changed: false, count: iconFiles.length };
+    }
+    if (fs.existsSync(outputRoot)) fs.renameSync(outputRoot, backupRoot);
+    try {
+      fs.renameSync(temporaryRoot, outputRoot);
+      fs.rmSync(backupRoot, { recursive: true, force: true });
+    } catch (error) {
+      fs.rmSync(outputRoot, { recursive: true, force: true });
+      if (fs.existsSync(backupRoot)) fs.renameSync(backupRoot, outputRoot);
+      throw error;
+    }
+    return { changed: true, count: iconFiles.length };
+  } finally {
+    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    fs.rmSync(backupRoot, { recursive: true, force: true });
+  }
+}
+
+function writeTextAtomic(target, text) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, text, 'utf8');
+  fs.renameSync(temporary, target);
+}
+
+function refreshGenerationId(html) {
+  const placeholder = String(html).replace(/data-generation-id="[a-f0-9]+"/u, 'data-generation-id="__GENERATION_ID__"');
+  const generationId = crypto.createHash('sha256').update(placeholder).digest('hex');
+  return placeholder.replace('__GENERATION_ID__', generationId);
+}
+
+function syncExistingShareCodePlazaIcons({ outputPath, sourceRoot, outputRoot }) {
+  if (!fs.existsSync(outputPath)) throw new Error(`シェアコード広場HTMLがありません: ${outputPath}`);
+  const previous = fs.readFileSync(outputPath, 'utf8');
+  const iconFiles = iconFilesFromHtml(previous);
+  const icons = syncShareCodePlazaIcons(iconFiles, { sourceRoot, outputRoot });
+  const html = refreshGenerationId(previous.replace(
+    /https:\/\/jogu6\.github\.io\/ffxiv-recipe\/assets\/item-icons\//gu,
+    './assets/item-icons/'
+  ));
+  const htmlChanged = html !== previous;
+  if (htmlChanged) writeTextAtomic(outputPath, html);
+  return { changed: icons.changed || htmlChanged, count: iconFiles.length };
 }
 
 function renderHtml(records, sourceLabel) {
@@ -468,7 +586,7 @@ function renderHtml(records, sourceLabel) {
 :root{color-scheme:dark;--bg:#151515;--surface:#202020;--surface2:#282828;--border:#444;--text:#eee;--muted:#aaa;--accent:#d8b45a;--danger:#d77}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}body{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(42px,calc(env(safe-area-inset-bottom) + 26px)) max(12px,env(safe-area-inset-left))}.page{width:min(920px,100%);margin:auto}.top{position:sticky;top:0;z-index:2;margin:-12px -4px 14px;padding:12px 4px;background:linear-gradient(var(--bg) 82%,transparent)}.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.title-actions{display:flex;align-items:center;gap:7px}h1{margin:0;color:var(--accent);font-size:20px}.license-button{border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);padding:3px 7px;font-size:10px;cursor:pointer}.close-button,.import-button,.copy-button{border:1px solid var(--border);border-radius:5px;background:#292929;color:var(--text);padding:8px 14px;cursor:pointer}.close-button:hover,.import-button:hover,.copy-button:hover,.license-button:hover{border-color:var(--accent);color:var(--accent)}.description{margin:10px 0 0;color:var(--muted);font-size:13px;line-height:1.7}.share-list{display:grid;gap:12px}.share-card{min-width:0;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:7px}.share-card header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}.share-card h2{min-width:0;margin:0;color:var(--accent);font-size:17px;overflow-wrap:anywhere}.share-card time{flex:none;color:var(--muted);font-size:12px}.item-list{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin:0 0 12px;padding:0;list-style:none}.item-list li{display:flex;flex:0 1 116px;flex-direction:column;align-items:center;gap:5px;min-width:72px;padding:7px 5px;background:var(--surface2);border-radius:4px;font-size:12px;text-align:center}.item-list img{width:40px;height:40px;flex:none;border-radius:3px}.item-list span{width:100%;overflow-wrap:anywhere}.share-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.import-button,.copy-button{width:100%}.import-button{background:#302b1e;border-color:#665832}.import-result{min-height:1.2em;margin:7px 0 0;color:var(--accent);font-size:12px;text-align:center}.empty{padding:30px;text-align:center;color:var(--muted)}footer{position:fixed;right:0;bottom:0;left:0;z-index:20;padding:4px;background:transparent;color:#888;text-align:center;font-size:11px}footer a{color:var(--accent)}#licenseOverlay{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.76)}#licenseOverlay.open{display:flex}#licenseDialog{width:min(640px,100%);padding:20px 24px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}#licenseDialog h2{margin-top:0;color:var(--accent);font-size:14px}#licenseText{padding:12px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:12px;line-height:1.6}.license-close{display:block;margin:14px auto 0;padding:6px 18px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);cursor:pointer}
 @media(max-width:600px){body{padding-left:8px;padding-right:8px}.top{margin-left:0;margin-right:0}.title-row{align-items:center}h1{font-size:17px}.close-button{padding:7px 11px}.share-card{padding:10px}.share-card header{display:block}.share-card time{display:block;margin-top:4px}.item-list li{flex-basis:92px}.item-list img{width:44px;height:44px}}
 </style></head>
-<body><main class="page"><section class="top"><div class="title-row"><h1>シェアコード広場</h1><div class="title-actions"><button class="license-button" id="licenseBtn" type="button">LICENSE</button><button id="closeButton" class="close-button" type="button">閉じる</button></div></div><p class="description">このページは、${escapeHtml(sourceLabel)}へ投稿されたシェアコードを転記したものです。掲載内容は定期的に更新されます。</p></section><section class="share-list">${body}</section></main>
+<body><main class="page"><section class="top"><div class="title-row"><h1>シェアコード広場</h1><div class="title-actions"><button class="license-button" id="licenseBtn" type="button">LICENSE</button><button id="closeButton" class="close-button" type="button">閉じる</button></div></div><p class="description">Discordの「シェアコード広場」へ投稿されたお気に入りリストを掲載しています。アイテム内容を確認し、そのままXIVcaへ取り込むか、シェアコードをコピーできます。掲載内容は定期的にDiscordから反映されます。</p></section><section class="share-list">${body}</section></main>
 <div id="licenseOverlay" aria-hidden="true"><div id="licenseDialog" role="dialog" aria-modal="true" aria-labelledby="licenseTitle"><h2 id="licenseTitle">LICENSE / NOTICE</h2><div id="licenseText"><p>The MIT License applies only to the original application source code and project tooling in this repository.</p><p>FINAL FANTASY XIV images, names, item and recipe data, trademarks, and other game-derived materials are owned by SQUARE ENIX.</p><p>This project is unofficial and is not affiliated with, sponsored by, approved by, or endorsed by SQUARE ENIX.</p></div><button class="license-close" id="licenseCloseBtn" type="button">閉じる</button></div></div>
 <footer>© SQUARE ENIX / Data: Lodestone / X: <a href="https://x.com/ff14_recipe" target="_blank" rel="noopener">@ff14_recipe</a></footer>
 <script>
@@ -598,6 +716,13 @@ async function main() {
   const args = readArgs(process.argv.slice(2));
   const config = loadConfig(args);
   const outputPath = path.resolve(root, args.output || 'docs/share-code-plaza.html');
+  const iconSourceRoot = path.resolve(args['icon-source'] || path.join(root, '..', 'ffxiv-recipe', 'pipeline', 'cache', 'item-icons-webp'));
+  const iconOutputRoot = path.resolve(args['icon-output'] || path.join(path.dirname(outputPath), 'assets', 'item-icons'));
+  if (args.syncIconsOnly) {
+    const result = syncExistingShareCodePlazaIcons({ outputPath, sourceRoot: iconSourceRoot, outputRoot: iconOutputRoot });
+    console.log(`Share code plaza icons: ${result.count}, ${result.changed ? 'updated' : 'unchanged'}`);
+    return result;
+  }
   const publishedPrevious = args.publish
     ? await fetch(config.publicUrl, { cache: 'no-store' }).then((response) => response.ok ? response.text() : '').catch(() => '')
     : '';
@@ -630,9 +755,13 @@ async function main() {
     indexLegacyItemNames(rawLegacyItems),
   );
   assertNoMissingReachableSelections(records, itemIndex);
+  const iconSync = syncShareCodePlazaIcons(iconFilesFromRecords(records), {
+    sourceRoot: iconSourceRoot,
+    outputRoot: iconOutputRoot,
+  });
   const html = renderHtml(records, config.discordSourceLabel || 'Discord「FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)」のテキストチャンネル「シェアコード広場」');
   const previous = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
-  const changed = previous !== html;
+  const changed = previous !== html || iconSync.changed;
   if (changed) {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     const tempPath = `${outputPath}.tmp`;
@@ -642,12 +771,14 @@ async function main() {
   }
   const generationId = html.match(/data-generation-id="([a-f0-9]+)"/)?.[1];
   const relativeOutputPath = path.relative(root, outputPath);
-  const unpublished = args.publish && Boolean(runGit(['status', '--porcelain', '--', relativeOutputPath]));
+  const relativeIconOutputRoot = path.relative(root, iconOutputRoot);
+  const publishPaths = [relativeOutputPath, relativeIconOutputRoot];
+  const unpublished = args.publish && Boolean(runGit(['status', '--porcelain', '--', ...publishPaths]));
   const unpushed = args.publish && Number(runGit(['rev-list', '--count', '@{upstream}..HEAD'])) > 0;
   if (args.publish && (changed || unpublished || unpushed)) {
     if (unpublished) {
-      runGit(['add', '--', relativeOutputPath]);
-      runGit(['commit', '-m', `Update share code plaza (${records.length} entries)`, '--', relativeOutputPath]);
+      runGit(['add', '--', ...publishPaths]);
+      runGit(['commit', '-m', `Update share code plaza (${records.length} entries)`, '--', ...publishPaths]);
     }
     runGit(['push', 'origin', 'main']);
     await verifyPublished(config.publicUrl, generationId);
@@ -682,4 +813,5 @@ export {
   indexItems,
   indexLegacyItemNames,
   renderHtml,
+  syncShareCodePlazaIcons,
 };

@@ -302,20 +302,6 @@ async function expectFavoriteOrder(page, first, second) {
 
 async function prepare(page) {
   page.setDefaultTimeout(120000);
-  await page.route(
-    "https://jogu6.github.io/ffxiv-recipe/assets/item-icons/**",
-    async (route) => {
-      const marker = "/assets/item-icons/";
-      const relative = decodeURIComponent(new URL(route.request().url()).pathname.split(marker)[1] || "");
-      const iconFile = path.join(appRoot, "site", "assets", "item-icons", relative);
-      try {
-        await access(iconFile);
-        await route.fulfill({ path: iconFile });
-      } catch {
-        await route.fulfill({ status: 404, body: "" });
-      }
-    },
-  );
   await page.addInitScript((styles) => {
     const style = document.createElement("style");
     style.textContent = styles;
