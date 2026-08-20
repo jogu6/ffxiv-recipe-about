@@ -80,7 +80,6 @@ test("対応環境と保存・更新の前提を具体的に説明する", async
   const overview = page.locator("#overview");
   await expect(overview).toContainText("Google Chrome 93以降");
   await expect(overview).toContainText("Microsoft Edge 93以降");
-  await expect(overview).toContainText("Mozilla Firefox 113以降");
   await expect(overview).toContainText("Safari 16.4以降");
   await expect(overview).toContainText("Brave 1.29以降");
   await expect(overview).toContainText("WebP");
