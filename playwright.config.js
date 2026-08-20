@@ -1,9 +1,21 @@
 const { defineConfig, devices } = require('@playwright/test');
-const os = require('node:os');
+const fs = require('node:fs');
 
 const port = Number(process.env.E2E_PORT || 4174);
 const baseURL = `http://127.0.0.1:${port}`;
-const workers = process.env.CI ? 2 : Math.min(4, Math.max(2, Math.floor(os.availableParallelism() / 2)));
+const workers = 2;
+const braveExecutable = process.env.BRAVE_PATH || 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe';
+const projects = [
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+];
+if (fs.existsSync(braveExecutable)) {
+  projects.push({
+    name: 'brave',
+    use: { ...devices['Desktop Chrome'], launchOptions: { executablePath: braveExecutable } },
+  });
+}
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -21,10 +33,5 @@ module.exports = defineConfig({
     reuseExistingServer: true,
     timeout: 120000,
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
+  projects,
 });

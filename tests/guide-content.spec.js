@@ -1,118 +1,92 @@
 const { expect, test } = require("@playwright/test");
-const { swipe } = require("./helpers/guide.js");
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 });
-test("every guide screenshot uses the correct desktop or mobile variant", async ({
-  page,
-}) => {
-  const imageSources = () =>
-    page.locator(".image-grid img").evaluateAll((images) =>
-      images.map((image) => ({
-        alt: image.alt,
-        src: new URL(image.getAttribute("src"), document.baseURI).pathname,
-      })),
-    );
 
-  await page.setViewportSize({ width: 601, height: 844 });
-  await expect
-    .poll(async () => (await imageSources()).filter(({ src }) => /\/mobile-/.test(src)).length)
-    .toBe(0);
-
-  await page.setViewportSize({ width: 600, height: 844 });
-  await expect
-    .poll(async () => (await imageSources()).every(({ src }) => /\/mobile-/.test(src)))
-    .toBe(true);
+test("目次は確定した12章を順番どおり表示する", async ({ page }) => {
+  await expect(page.locator("#toc-list > li > a")).toHaveText([
+    "このアプリでできること",
+    "基本的な使い方",
+    "装備を条件検索する",
+    "製作方法と素材を調整する",
+    "お気に入りリストを使う",
+    "お気に入りの製作条件を指定する",
+    "複数のお気に入りをまとめて計算する",
+    "表示内容を共有する",
+    "お気に入りを保存・共有する",
+    "画面表示と操作を設定する",
+    "データの保存とアプリの更新",
+    "注意事項・権利表記",
+  ]);
 });
 
-test("desktop favorite organization slides use full-screen captures", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 601, height: 844 });
-  const dimensions = await page.evaluate(async () => {
-    const names = [
-      "27-favorite-list-actions.webp",
-      "28-favorite-list-renamed.webp",
-      "30-favorite-list-reordered.webp",
-      "34-favorite-list-deleted.webp",
-    ];
-    return Promise.all(
-      names.map(
-        (name) =>
-          new Promise((resolve, reject) => {
-            const image = new Image();
-            image.onload = () =>
-              resolve({ name, width: image.naturalWidth, height: image.naturalHeight });
-            image.onerror = reject;
-            image.src = `assets/images/${name}`;
-          }),
-      ),
-    );
-  });
-  for (const { width, height } of dimensions) {
-    expect(width).toBeGreaterThanOrEqual(2000);
-    expect(height).toBeGreaterThanOrEqual(1200);
-    expect(width / height).toBeGreaterThanOrEqual(1.5);
+test("目次の小項目は本文の固有見出しへ移動する", async ({ page }) => {
+  const nestedLinks = page.locator("#toc-list > li > ol a");
+  await expect(nestedLinks).toHaveCount(47);
+  const targets = await nestedLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  expect(new Set(targets).size).toBe(targets.length);
+  for (const target of targets) {
+    await expect(page.locator(target)).toHaveCount(1);
   }
 });
 
-test("responsive explanations show only text for the current layout", async ({
-  page,
-}) => {
-  await expect(page.locator("#search .mobile-only")).toBeVisible();
-  await expect(page.locator("#search .desktop-only")).toBeHidden();
+test("すべての撮影系列は操作前から操作結果までを明示する", async ({ page }) => {
+  const invalid = await page.evaluate(() =>
+    Object.entries(window.GUIDE_SLIDES).flatMap(([gallery, variants]) =>
+      Object.entries(variants).flatMap(([layout, slides]) => {
+        if (!slides.length) return [];
+        const first = slides[0][2];
+        const last = slides.at(-1)[2];
+        return first.startsWith("操作前：") && last.startsWith("操作結果：")
+          ? []
+          : [{ gallery, layout, first, last }];
+      }),
+    ),
+  );
+  expect(invalid).toEqual([]);
+});
 
+test("画面幅に応じてデスクトップ版とモバイル版だけを表示する", async ({ page }) => {
+  const sources = () => page.locator(".image-grid img").evaluateAll((images) =>
+    images.map((image) => new URL(image.src).pathname),
+  );
+
+  await expect.poll(async () => (await sources()).every((src) => /\/mobile-/.test(src))).toBe(true);
   await page.setViewportSize({ width: 601, height: 844 });
-  await expect(page.locator("#search .desktop-only")).toBeVisible();
-  await expect(page.locator("#search .mobile-only")).toBeHidden();
+  await expect.poll(async () => (await sources()).every((src) => /\/desktop-/.test(src))).toBe(true);
 });
 
-test("guide explains the purpose, operation, and result of any-one mode", async ({
-  page,
-}) => {
-  const section = page
-    .locator("#favorite-tools")
-    .getByRole("heading", {
-      name: "どれか1アイテム",
-    })
-    .locator("..");
-  await expect(section).toContainText("どれか1つを作れる素材リスト");
-  await expect(section).toContainText("完成品が直接使う同じ末端素材");
-  await expect(section).toContainText("候補間の最大数を1回分だけ表示");
-  await expect(section).toContainText("共通して使う末端素材は合算");
-  await expect(section).toContainText("素材リストを表示");
-  await expect(section).toContainText("もしくは");
+test("共有テキストと共有画像の実出力を結果画像として掲載する", async ({ page }) => {
+  const share = page.locator("#content-share");
+  await expect(share).toContainText("撮影時にアプリが実際に出力したテキスト");
+  await expect(share).toContainText("撮影時にアプリが実際に出力した画像");
+  await expect(share.getByRole("img", { name: /生成された共有テキスト/ })).toBeAttached();
+  await expect(share.getByRole("img", { name: /生成された共有画像/ })).toBeAttached();
 });
 
-test("combined favorites explains list selection, both modes, and result controls", async ({
-  page,
-}) => {
-  const combined = page.locator("#combined");
-  await expect(combined).toContainText("右端の「◀」");
-  await expect(combined).toContainText("チェックボックス");
-  await expect(combined).toContainText(
-    "どれか1リストをセット数分製作するために必要な素材リスト",
-  );
-  await expect(combined).toContainText(
-    "チェックしたすべてのリストを製作する素材リストではありません",
-  );
-  await expect(combined).toContainText("完成品が直接使う同じ末端素材は各リスト内で合算");
-  await expect(combined).toContainText("同じ中間素材もリスト間の最大数を1回分だけ表示");
-  await expect(combined).toContainText("共通して使う末端素材は合算");
-  await expect(combined).toContainText("リストごとに指輪の製作数を0・1つ・2つ");
-  await expect(
-    combined.getByRole("img", { name: "複数リスト用拡張機能の説明ウィンドウ" }),
-  ).toBeVisible();
-  await expect(
-    combined.getByRole("img", {
-      name: "どれか1リストで表示した複数リストの素材リスト",
-    }),
-  ).toBeVisible();
-  await expect(
-    combined.getByRole("img", {
-      name: "複数リストの製作内容を折り畳んだ素材リスト",
-    }),
-  ).toBeVisible();
+test("シェアコードとファイル操作は発行・取り込みを分けて説明する", async ({ page }) => {
+  const section = page.locator("#favorite-share");
+  await expect(section.locator("#share-code-create + p")).toContainText("コードをコピー");
+  await expect(section.locator("#share-code-import + p")).toContainText("取り込む");
+  await expect(section.locator('[data-gallery="shareCodeCreate"]')).toBeAttached();
+  await expect(section.locator('[data-gallery="shareCodeImport"]')).toBeAttached();
+  await expect(section.locator('[data-gallery="favoriteFileExport"]')).toBeAttached();
+  await expect(section.locator('[data-gallery="favoriteFileImport"]')).toBeAttached();
+});
+
+test("対応環境と保存・更新の前提を具体的に説明する", async ({ page }) => {
+  const overview = page.locator("#overview");
+  await expect(overview).toContainText("Google Chrome 93以降");
+  await expect(overview).toContainText("Microsoft Edge 93以降");
+  await expect(overview).toContainText("Mozilla Firefox 113以降");
+  await expect(overview).toContainText("Safari 16.4以降");
+  await expect(overview).toContainText("Brave 1.29以降");
+  await expect(overview).toContainText("WebP");
+  await expect(overview).toContainText("エオルゼアデータベース");
+  await expect(overview).toContainText("iPhone・iPadでホーム画面へ追加する場合はSafari");
+  await expect(page.locator("#data-update")).toContainText("別ブラウザーや別端末へは自動同期されません");
+  await expect(page.locator("#data-migration").locator("xpath=following-sibling::p[1]")).toContainText("お気に入りリスト等が全て削除されます");
+  await expect(page.locator("#notes")).toContainText("製作レシピがあるアイテム");
 });

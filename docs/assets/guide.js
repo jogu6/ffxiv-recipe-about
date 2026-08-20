@@ -18,6 +18,65 @@
   let viewerBaseWidth = 0;
   const activePointers = new Map();
 
+  const headingRow = document.querySelector(".heading-row");
+  const guideBrand = document.querySelector(".guide-brand");
+  const formalName = document.querySelector(".app-formal-name");
+  const guideEdition = document.querySelector(".guide-edition");
+  const guideTitle = document.querySelector(".guide-title");
+  const guideVersion = document.querySelector(".guide-version");
+  let headingFitFrame = 0;
+
+  function applyFormalNameSize(size) {
+    const fittedSize = `${Math.max(1, Math.floor(size * 100) / 100)}px`;
+    formalName.style.fontSize = fittedSize;
+    guideVersion.style.fontSize = fittedSize;
+  }
+
+  function fitHeadingText() {
+    const availableWidth = Math.floor(guideBrand.getBoundingClientRect().width);
+    if (availableWidth < 1) return;
+    formalName.style.removeProperty("font-size");
+    guideVersion.style.removeProperty("font-size");
+    guideEdition.style.removeProperty("font-size");
+
+    const maximumSize = Number.parseFloat(getComputedStyle(formalName).fontSize);
+    guideVersion.style.fontSize = `${maximumSize}px`;
+    const formalRequiredWidth = formalName.scrollWidth;
+    const titleWidth = guideTitle.getBoundingClientRect().width;
+    const versionRequiredWidth = guideVersion.scrollWidth;
+    const columnGap = Number.parseFloat(getComputedStyle(guideEdition).columnGap) || 0;
+    const availableVersionWidth = Math.max(1, availableWidth - titleWidth - columnGap);
+    let fittedSize = maximumSize;
+    if (formalRequiredWidth > availableWidth) {
+      fittedSize = Math.min(fittedSize, maximumSize * (availableWidth / formalRequiredWidth));
+    }
+    if (versionRequiredWidth > availableVersionWidth) {
+      fittedSize = Math.min(fittedSize, maximumSize * (availableVersionWidth / versionRequiredWidth));
+    }
+    applyFormalNameSize(fittedSize);
+
+    const logoHeight = document.querySelector(".xivca-wordmark").getBoundingClientRect().height;
+    const formalHeight = formalName.getBoundingClientRect().height;
+    const editionHeight = guideEdition.getBoundingClientRect().height;
+    const rowGap = Number.parseFloat(getComputedStyle(guideBrand).rowGap) || 0;
+    const availableFormalHeight = Math.max(1, logoHeight - editionHeight - rowGap);
+    if (formalHeight > availableFormalHeight) {
+      const currentSize = Number.parseFloat(getComputedStyle(formalName).fontSize);
+      applyFormalNameSize(currentSize * (availableFormalHeight / formalHeight));
+    }
+  }
+
+  function scheduleHeadingFit() {
+    cancelAnimationFrame(headingFitFrame);
+    headingFitFrame = requestAnimationFrame(fitHeadingText);
+  }
+
+  scheduleHeadingFit();
+  window.addEventListener("load", scheduleHeadingFit);
+  window.addEventListener("resize", scheduleHeadingFit);
+  document.fonts?.ready.then(scheduleHeadingFit);
+  new ResizeObserver(scheduleHeadingFit).observe(headingRow);
+
   const mobileMedia = window.matchMedia("(max-width: 600px)");
   const toc = document.querySelector(".toc");
   const footer = document.querySelector("footer");
@@ -50,36 +109,53 @@
   );
   if (footer) new ResizeObserver(scheduleTocFit).observe(footer);
 
-  const galleryStates = [...document.querySelectorAll(".image-grid")].map(
-    (gallery) => ({
-      gallery,
-      desktopFrames: [...gallery.querySelectorAll(".image-frame")].map(
-        (frame) => frame.cloneNode(true),
-      ),
-      swiper: null,
-      index: 0,
-    }),
+  function createFrame([fileName, alt, caption]) {
+    const frame = document.createElement("figure");
+    frame.className = "image-frame";
+    const button = document.createElement("button");
+    button.className = "zoom-button";
+    button.type = "button";
+    button.setAttribute("aria-label", "画像を拡大");
+    const img = document.createElement("img");
+    img.src = `assets/images/${fileName}`;
+    img.alt = alt;
+    img.loading = "lazy";
+    img.decoding = "async";
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.classList.add("zoom-icon");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", "10.5");
+    circle.setAttribute("cy", "10.5");
+    circle.setAttribute("r", "6.5");
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    handle.setAttribute("d", "M15.5 15.5 21 21");
+    icon.append(circle, handle);
+    button.append(icon);
+    const figcaption = document.createElement("figcaption");
+    figcaption.textContent = caption;
+    frame.append(img, button, figcaption);
+    return frame;
+  }
+
+  const galleryStates = [...document.querySelectorAll(".image-grid[data-gallery]")].map(
+    (gallery) => {
+      const source = window.GUIDE_SLIDES?.[gallery.dataset.gallery];
+      if (!source) throw new Error(`画像系列が見つかりません: ${gallery.dataset.gallery}`);
+      return {
+        gallery,
+        desktopFrames: (source.desktop || []).map(createFrame),
+        mobileFrames: (source.mobile || []).map(createFrame),
+        swiper: null,
+        index: 0,
+      };
+    },
   );
 
   function makeFrames(state, mobile) {
-    if (mobile && state.gallery.dataset.mobileSlides) {
-      const template = state.desktopFrames[0];
-      return state.gallery.dataset.mobileSlides.split(",").map((value) => {
-        const [src, alt, caption] = value.split("|");
-        const frame = template.cloneNode(true);
-        const img = frame.querySelector("img");
-        img.src = src;
-        img.alt = alt;
-        frame.querySelector("figcaption").textContent = caption;
-        return frame;
-      });
-    }
-    return state.desktopFrames.map((source) => {
-      const frame = source.cloneNode(true);
-      const img = frame.querySelector("img");
-      if (mobile && img.dataset.mobileSrc) img.src = img.dataset.mobileSrc;
-      return frame;
-    });
+    const sources = mobile ? state.mobileFrames : state.desktopFrames;
+    return sources.map((source) => source.cloneNode(true));
   }
 
   function buildGallery(state, mobile) {

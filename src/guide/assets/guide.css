@@ -42,12 +42,14 @@ a {
 }
 .heading-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 .page-heading h1 {
   display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
   align-items: center;
   gap: 8px;
   margin: 0;
@@ -56,18 +58,48 @@ a {
 }
 .page-heading-icon,
 .app-open-button img {
+  flex: 0 0 auto;
   width: 1.5em;
   height: 1.5em;
-}
-.guide-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 .xivca-wordmark {
   display: block;
   width: auto;
-  height: clamp(72px, 8vw, 112px);
+  height: 64px;
+  flex: 0 0 auto;
+}
+.guide-brand {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.25;
+}
+.app-formal-name {
+  display: block;
+  max-width: 100%;
+  color: var(--text);
+  font-size: calc(14px * var(--guide-font-scale));
+  font-weight: 600;
+  white-space: nowrap;
+}
+.guide-edition {
+  display: flex;
+  max-width: 100%;
+  align-items: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+.guide-title {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.guide-version {
+  flex: 0 0 auto;
+  color: var(--text);
+  font-weight: 600;
 }
 .page-heading > p {
   margin: 8px 0;
@@ -77,6 +109,8 @@ button {
   font: inherit;
 }
 .license-button {
+  flex: 0 0 auto;
+  align-self: flex-start;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--bg);
@@ -152,9 +186,11 @@ button {
 .toc li {
   padding: 2px 0;
   color: var(--muted);
-  white-space: nowrap;
+  white-space: normal;
 }
 .toc a {
+  display: block;
+  max-width: 100%;
   text-decoration: none;
 }
 .toc a:hover {
@@ -272,6 +308,15 @@ button {
   line-height: 1;
   padding: 0;
   cursor: pointer;
+}
+.zoom-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 .gallery-ready {
   display: block;
@@ -506,10 +551,13 @@ footer {
     font-size: calc(16px * var(--guide-font-scale));
   }
   .guide-brand {
-    gap: 8px;
+    gap: 1px;
   }
   .xivca-wordmark {
-    height: 64px;
+    height: 48px;
+  }
+  .app-formal-name {
+    font-size: calc(10px * var(--guide-font-scale));
   }
   .guide-layout {
     display: block;
@@ -538,6 +586,11 @@ footer {
     bottom: 12px;
   }
 }
+@media (max-width: 480px) {
+  .xivca-wordmark {
+    height: 38px;
+  }
+}
 @media (max-width: 600px) {
   .toc {
     position: static;
@@ -545,9 +598,6 @@ footer {
   }
   .toc > ol {
     overflow: visible;
-  }
-  .toc li {
-    white-space: normal;
   }
 }
 @media (max-width: 600px) {

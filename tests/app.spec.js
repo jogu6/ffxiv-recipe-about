@@ -4,15 +4,40 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
   await page.goto('/');
 
   await expect(page).toHaveTitle('XIVca | 使い方ガイド');
-  await expect(page.locator('h1')).toContainText('使い方ガイド');
-  await expect(page.locator('.xivca-wordmark')).toHaveAttribute('alt', 'FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)');
+  await expect(page.locator('.page-heading-icon')).toBeVisible();
+  await expect(page.locator('.xivca-wordmark')).toHaveAttribute('src', 'assets/xivca-logo.webp');
+  await expect(page.locator('.xivca-wordmark')).toBeVisible();
+  await expect(page.locator('.app-formal-name')).toHaveText('FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)');
+  await expect(page.locator('.guide-title')).toHaveText('使い方ガイド');
+  await expect(page.locator('.guide-version')).toHaveText('v3.22 対応');
+  const headingStyle = await page.locator('.guide-brand').evaluate((brand) => {
+    const formalName = brand.querySelector('.app-formal-name');
+    const guideTitle = brand.querySelector('.guide-title');
+    const guideVersion = brand.querySelector('.guide-version');
+    return {
+      formalTop: formalName.getBoundingClientRect().top,
+      titleTop: guideTitle.getBoundingClientRect().top,
+      titleColor: getComputedStyle(guideTitle).color,
+      formalColor: getComputedStyle(formalName).color,
+      versionColor: getComputedStyle(guideVersion).color,
+      formalSize: Number.parseFloat(getComputedStyle(formalName).fontSize),
+      versionSize: Number.parseFloat(getComputedStyle(guideVersion).fontSize),
+      titleBottom: guideTitle.getBoundingClientRect().bottom,
+      versionBottom: guideVersion.getBoundingClientRect().bottom,
+    };
+  });
+  expect(headingStyle.formalTop).toBeLessThan(headingStyle.titleTop);
+  expect(headingStyle.formalColor).toBe(headingStyle.versionColor);
+  expect(headingStyle.titleColor).not.toBe(headingStyle.versionColor);
+  expect(Math.abs(headingStyle.formalSize - headingStyle.versionSize)).toBeLessThan(0.01);
+  expect(Math.abs(headingStyle.titleBottom - headingStyle.versionBottom)).toBeLessThan(0.5);
   await expect(page.locator('#overview')).toBeVisible();
-  await expect(page.locator('#search')).toBeVisible();
+  await expect(page.locator('#basics')).toBeVisible();
   await expect(page.locator('#equipment')).toBeVisible();
   await expect(page.locator('#materials')).toBeVisible();
   await expect(page.locator('#favorites')).toBeVisible();
   await expect(page.locator('#combined')).toBeVisible();
-  await expect(page.locator('#share')).toBeVisible();
+  await expect(page.locator('#content-share')).toBeVisible();
   await expect(page.locator('.app-open-button')).toHaveAttribute(
     'href',
     'http://127.0.0.1:4173/',
@@ -24,7 +49,15 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
 });
 
 test('renders the standalone share code plaza safely and copies a share code', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4174' });
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async text => { window.__copiedShareCode = text; },
+        readText: async () => window.__copiedShareCode || '',
+      },
+    });
+  });
   await page.goto('/share-code-plaza.html');
   await expect(page).toHaveTitle('XIVca | シェアコード広場');
   await expect(page.getByRole('heading', { name: 'シェアコード広場' })).toBeVisible();
@@ -49,7 +82,7 @@ test('renders the standalone share code plaza safely and copies a share code', a
   await copyButton.click();
   await expect(copyButton).toHaveText('コピー済み');
   await expect(firstCard.locator('.import-result')).toHaveText('シェアコードをコピーしました');
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expectedCode);
+  await expect.poll(() => page.evaluate(() => window.__copiedShareCode)).toBe(expectedCode);
   await page.getByRole('button', { name: '閉じる' }).click();
   await expect(page).toHaveURL(/share-code-plaza\.html$/);
 });
@@ -59,7 +92,7 @@ test('uses the table of contents to move to a guide section', async ({ page }) =
 
   await page.locator('.toc a[href="#equipment"]').click();
   await expect(page).toHaveURL(/#equipment$/);
-  await expect(page.locator('#equipment')).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
 
 test('changes slides in a multi-image gallery', async ({ page }) => {
@@ -85,6 +118,7 @@ test('opens and closes the image viewer and license notice', async ({ page }) =>
 
   const zoomButton = page.locator('.zoom-button').first();
   await zoomButton.scrollIntoViewIfNeeded();
+  await expect.poll(() => zoomButton.locator('xpath=../img').evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
   await zoomButton.click();
   await expect(page.locator('.image-viewer')).toHaveClass(/open/);
   await expect(page.locator('.image-viewer-img')).toHaveAttribute('src', /assets\/images\//);

@@ -38,6 +38,7 @@ for (const relativePath of [
   'assets/guide.css',
   'assets/guide-features.css',
   'assets/guide.js',
+  'assets/guide-slides.js',
   'assets/app-icons/favicon.png',
   'assets/vendor/swiper-bundle.min.css',
   'assets/vendor/swiper-bundle.min.js',
@@ -68,15 +69,20 @@ for (const snippet of [
   '"@type": "WebPage"',
   'href="https://jogu6.github.io/ffxiv-recipe/"',
   'id="overview"',
-  'id="search"',
+  'id="basics"',
   'id="equipment"',
-  'id="recipe-tree"',
   'id="materials"',
   'id="favorites"',
+  'id="favorite-conditions"',
   'id="combined"',
-  'id="share"',
+  'id="content-share"',
+  'id="favorite-share"',
+  'id="display"',
+  'id="data-update"',
+  'id="notes"',
   'class="image-viewer"',
   '<script src="assets/vendor/swiper-bundle.min.js"></script>',
+  '<script src="assets/guide-slides.js"></script>',
   '<script src="assets/guide.js"></script>',
 ]) {
   requireSnippet(html, snippet, 'docs/index.html');
@@ -89,6 +95,11 @@ for (const snippet of ['new Swiper(', 'rebuildResponsiveGalleries', 'openViewer'
 const localReferences = [
   ...html.matchAll(/(?:href|src|data-mobile-src)="([^"]+)"/g),
 ].map((match) => match[1]).filter((reference) => !/^(?:#|https?:\/\/)/.test(reference));
+
+const slideJs = fs.readFileSync(requireFile(siteRoot, 'assets/guide-slides.js'), 'utf8');
+for (const match of slideJs.matchAll(/["']([^"']+\.webp)["']/g)) {
+  localReferences.push(`assets/images/${match[1]}`);
+}
 
 const missingReferences = [...new Set(localReferences)].filter((reference) => {
   const cleanReference = reference.split(/[?#]/, 1)[0];

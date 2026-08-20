@@ -26,18 +26,17 @@ test("table of contents follows the guide content without duplicate or backward 
 
   await expect(page.locator("#toc-list > li > a")).toHaveText([
     "このアプリでできること",
-    "アイテムを検索する",
+    "基本的な使い方",
     "装備を条件検索する",
-    "レシピツリー画面を確認する",
-    "必要素材と個数を確認する",
-    "ツリー内の素材を操作する",
-    "素材からレシピを逆引きする",
+    "製作方法と素材を調整する",
     "お気に入りリストを使う",
-    "お気に入りリストの拡張機能",
-    "複数のお気に入りリストの素材を計算する",
-    "保存・共有する",
-    "小窓・PWAで使う",
-    "注意事項・その他",
+    "お気に入りの製作条件を指定する",
+    "複数のお気に入りをまとめて計算する",
+    "表示内容を共有する",
+    "お気に入りを保存・共有する",
+    "画面表示と操作を設定する",
+    "データの保存とアプリの更新",
+    "注意事項・権利表記",
   ]);
   await expect(page.locator(".post .step")).toHaveCount(0);
 
@@ -46,22 +45,21 @@ test("table of contents follows the guide content without duplicate or backward 
     .evaluateAll((sections) => sections.map((section) => section.id));
   expect(orderedSections).toEqual([
     "overview",
-    "search",
+    "basics",
     "equipment",
-    "recipe-tree",
     "materials",
-    "tree-tools",
-    "reverse",
     "favorites",
-    "favorite-tools",
+    "favorite-conditions",
     "combined",
-    "share",
-    "window",
+    "content-share",
+    "favorite-share",
+    "display",
+    "data-update",
     "notes",
   ]);
 
   const targets = await page
-    .locator("#toc-list a")
+    .locator("#toc-list > li > a")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   expect(new Set(targets).size).toBe(targets.length);
 
@@ -74,6 +72,74 @@ test("table of contents follows the guide content without duplicate or backward 
     );
   }
   expect(targetPositions).toEqual([...targetPositions].sort((a, b) => a - b));
+
+  const nestedTargets = await page
+    .locator("#toc-list > li > ol a")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  for (const target of nestedTargets) await expect(page.locator(target)).toHaveCount(1);
+});
+
+test("visible table of contents links only target visible headings", async ({ page }) => {
+  for (const width of [390, 600, 601, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const invalidTargets = await page.locator("#toc-list a:visible").evaluateAll((links) =>
+      links.flatMap((link) => {
+        const target = document.querySelector(link.getAttribute("href"));
+        return target && target.getClientRects().length > 0
+          ? []
+          : [link.getAttribute("href")];
+      }),
+    );
+    expect(invalidTargets).toEqual([]);
+  }
+});
+
+test("heading keeps both logos and fits two text lines between the logo and license", async ({ page }) => {
+  for (const width of [390, 600, 601, 840, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect.poll(() => page.locator(".app-formal-name").evaluate((name) =>
+      name.scrollWidth <= name.clientWidth + 1,
+    )).toBe(true);
+    await expect.poll(() => page.locator(".guide-edition").evaluate((line) =>
+      line.scrollWidth <= line.clientWidth + 1,
+    )).toBe(true);
+    await expect.poll(() => page.locator(".guide-brand").evaluate((brand) => {
+      const formalName = brand.querySelector(".app-formal-name");
+      const title = brand.querySelector(".guide-title");
+      const version = brand.querySelector(".guide-version");
+      const sameSize = Math.abs(
+        Number.parseFloat(getComputedStyle(formalName).fontSize)
+          - Number.parseFloat(getComputedStyle(version).fontSize),
+      ) < 0.01;
+      const sameBottom = Math.abs(
+        title.getBoundingClientRect().bottom - version.getBoundingClientRect().bottom,
+      ) < 0.5;
+      return sameSize && sameBottom;
+    })).toBe(true);
+
+    const positions = await page.locator(".heading-row").evaluate((row) => {
+      const rect = (selector) => row.querySelector(selector).getBoundingClientRect();
+      const icon = rect(".page-heading-icon");
+      const logo = rect(".xivca-wordmark");
+      const brand = rect(".guide-brand");
+      const formalName = rect(".app-formal-name");
+      const edition = rect(".guide-edition");
+      const license = rect(".license-button");
+      return {
+        iconToLogo: logo.left - icon.right,
+        logoToBrand: brand.left - logo.right,
+        brandToLicense: license.left - brand.right,
+        brandHeight: brand.height,
+        logoHeight: logo.height,
+        formalAboveEdition: formalName.top < edition.top,
+      };
+    });
+    expect(positions.iconToLogo).toBeGreaterThanOrEqual(7);
+    expect(positions.logoToBrand).toBeGreaterThanOrEqual(7);
+    expect(positions.brandToLicense).toBeGreaterThanOrEqual(11);
+    expect(positions.brandHeight).toBeLessThanOrEqual(positions.logoHeight + 0.5);
+    expect(positions.formalAboveEdition).toBe(true);
+  }
 });
 
 test("desktop table of contents fits the viewport and does not clip labels", async ({
@@ -123,7 +189,7 @@ test("images switch at 600px without reloading in either direction", async ({
     .toBe(true);
 
   const mobileImages = await page
-    .locator(".extension-sections img")
+    .locator(".image-grid img")
     .evaluateAll((images) =>
       images.map((image) => image.currentSrc || image.src),
     );
@@ -143,19 +209,19 @@ test("images switch at 600px without reloading in either direction", async ({
     )
     .toBe(true);
 
-  const desktopImages = await page
-    .locator(".extension-sections img")
-    .evaluateAll((images) =>
-      images.map((image) => image.currentSrc || image.src),
-    );
-  expect(desktopImages).not.toHaveLength(0);
-  expect(desktopImages.every((src) => !/\/mobile-/.test(src))).toBe(true);
+  await expect
+    .poll(() =>
+      page.locator(".image-grid img").evaluateAll((images) =>
+        images.length > 0 && images.every((image) => !/\/mobile-/.test(image.currentSrc || image.src)),
+      ),
+    )
+    .toBe(true);
 
   await page.setViewportSize({ width: 600, height: 844 });
   await expect
     .poll(() =>
       page
-        .locator(".extension-sections img")
+        .locator(".image-grid img")
         .evaluateAll((images) =>
           images.every((image) =>
             /\/mobile-/.test(image.currentSrc || image.src),

@@ -13,6 +13,9 @@ test('Playwright runs spec files with bounded file-level workers and allows reus
   assert.equal(config.webServer.reuseExistingServer, true);
   assert.match(config.webServer.command, /^node tools\/serve-site\.mjs --port /);
   assert.ok(config.webServer.timeout >= 120000);
+  const projectNames = config.projects.map(project => project.name);
+  assert.deepEqual(projectNames.slice(0, 3), ['chromium', 'firefox', 'webkit']);
+  if (process.platform === 'win32') assert.ok(projectNames.includes('brave'));
 });
 
 test('E2E runner rejects stability overrides', () => {

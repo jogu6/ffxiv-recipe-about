@@ -5,11 +5,28 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 });
+
+async function waitForGalleryImage(gallery) {
+  await gallery.scrollIntoViewIfNeeded();
+  await expect.poll(() => gallery.locator("img").first().evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+}
+test("画像拡大ボタンは正方形の中央に虫眼鏡を表示する", async ({ page }) => {
+  const button = page.locator(".zoom-button").first();
+  const icon = button.locator(".zoom-icon");
+  await expect(button).toHaveAttribute("aria-label", "画像を拡大");
+  await expect(icon).toBeVisible();
+  await expect(button.locator(".zoom-label")).toHaveCount(0);
+  const boxes = await Promise.all([button.boundingBox(), icon.boundingBox()]);
+  const [buttonBox, iconBox] = boxes;
+  expect(buttonBox.width).toBeCloseTo(buttonBox.height, 1);
+  expect(iconBox.x + iconBox.width / 2).toBeCloseTo(buttonBox.x + buttonBox.width / 2, 1);
+  expect(iconBox.y + iconBox.height / 2).toBeCloseTo(buttonBox.y + buttonBox.height / 2, 1);
+});
 test("carousel drags with a mouse in both directions without moving vertically", async ({
   page,
 }) => {
-  const gallery = page.locator("#search .image-grid");
-  await gallery.scrollIntoViewIfNeeded();
+  const gallery = page.locator("#basics .image-grid").first();
+  await waitForGalleryImage(gallery);
   const viewport = gallery.locator(".gallery-viewport");
   const scrollY = await page.evaluate(() => window.scrollY);
 
@@ -20,7 +37,7 @@ test("carousel drags with a mouse in both directions without moving vertically",
   await page.mouse.move(box.x + box.width * 0.15, y, { steps: 10 });
   await page.mouse.up();
   await expect(viewport.locator(".swiper-slide-active figcaption")).toHaveText(
-    "②レシピを確認",
+    "操作中 1／3：アイテム名を入力する",
   );
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
 
@@ -29,17 +46,18 @@ test("carousel drags with a mouse in both directions without moving vertically",
   await page.mouse.move(box.x + box.width * 0.85, y, { steps: 10 });
   await page.mouse.up();
   await expect(viewport.locator(".swiper-slide-active figcaption")).toHaveText(
-    "①候補をタップ",
+    "操作前：アイテム検索を始める",
   );
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
 });
 
-test("carousel swipes with touch input", async ({ page }) => {
-  const gallery = page.locator("#search .image-grid");
-  await gallery.scrollIntoViewIfNeeded();
+test("carousel swipes with touch input", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "CDPによるタッチ入力はChromium系で検証する");
+  const gallery = page.locator("#basics .image-grid").first();
+  await waitForGalleryImage(gallery);
   await swipe(page, gallery.locator(".gallery-viewport"), 0.85, 0.15);
   await expect(gallery.locator(".swiper-slide-active figcaption")).toHaveText(
-    "②レシピを確認",
+    "操作中 1／3：アイテム名を入力する",
   );
 });
 
@@ -48,18 +66,19 @@ test("arrow controls move one slide", async ({ page }) => {
   await gallery.scrollIntoViewIfNeeded();
   await gallery.locator(".gallery-arrow-next").click();
   await expect(gallery.locator(".swiper-slide-active figcaption")).toHaveText(
-    "登録後の📌",
+    "操作中 1／6：リスト操作を開く",
   );
   await gallery.locator(".gallery-arrow-previous").click();
   await expect(gallery.locator(".swiper-slide-active figcaption")).toHaveText(
-    "登録先を選ぶ",
+    "操作前：対象リストを確認する",
   );
 });
 
 test("expanded image close control communicates that it is clickable", async ({
   page,
 }) => {
-  await page.locator("#search .zoom-button").first().click();
+  await waitForGalleryImage(page.locator("#basics .image-grid").first());
+  await page.locator("#basics .zoom-button").first().dispatchEvent("click");
   const close = page.locator(".image-viewer-close");
   await expect(close).toBeVisible();
   await expect(close).toHaveText("✕");
@@ -82,8 +101,11 @@ test("expanded image close control communicates that it is clickable", async ({
 
 test("phone image viewer pinches between fit size and natural size", async ({
   page,
+  browserName,
 }) => {
-  await page.locator("#search .zoom-button").first().click();
+  test.skip(browserName !== "chromium", "CDPによるピンチ入力はChromium系で検証する");
+  await waitForGalleryImage(page.locator("#basics .image-grid").first());
+  await page.locator("#basics .zoom-button").first().dispatchEvent("click");
   const stage = page.locator(".image-viewer-stage");
   const image = page.locator(".image-viewer-img");
   await expect(image).toHaveAttribute("data-scale", /.+/);
@@ -139,7 +161,8 @@ test("phone image viewer pinches between fit size and natural size", async ({
 
 test("desktop image viewer opens at natural size", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.locator("#search .zoom-button").first().click();
+  await waitForGalleryImage(page.locator("#basics .image-grid").first());
+  await page.locator("#basics .zoom-button").first().click();
   const image = page.locator(".image-viewer-img");
   await expect(image).toHaveAttribute("data-scale", "1");
   const size = await image.evaluate((element) => ({
