@@ -94,6 +94,31 @@ test("visible table of contents links only target visible headings", async ({ pa
   }
 });
 
+test("table of contents jumps do not hide headings at layout boundaries", async ({ page }) => {
+  await page.addStyleTag({ content: "html { scroll-behavior: auto !important; }" });
+  for (const width of [390, 600, 601, 840, 841, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const obscured = await page.locator("#toc-list a:visible").evaluateAll((links) =>
+      links.flatMap((link) => {
+        const href = link.getAttribute("href");
+        window.scrollTo(0, 0);
+        link.click();
+        const heading = document.querySelector(href).getBoundingClientRect();
+        const toc = document.querySelector(".toc").getBoundingClientRect();
+        const overlapsToc =
+          heading.left < toc.right &&
+          heading.right > toc.left &&
+          heading.top < toc.bottom &&
+          heading.bottom > toc.top;
+        return heading.top < 0 || overlapsToc
+          ? [{ target: href, top: heading.top, overlapsToc }]
+          : [];
+      }),
+    );
+    expect(obscured, `${width}pxで目次のジャンプ先が隠れています`).toEqual([]);
+  }
+});
+
 test("heading keeps both logos and fits two text lines between the logo and license", async ({ page }) => {
   for (const width of [390, 600, 601, 840, 1440]) {
     await page.setViewportSize({ width, height: 844 });
@@ -142,7 +167,7 @@ test("heading keeps both logos and fits two text lines between the logo and lice
   }
 });
 
-test("desktop table of contents fits the viewport and does not clip labels", async ({
+test("table of contents follows the layout and does not clip labels", async ({
   page,
 }) => {
   for (const width of [601, 840, 841, 1440, 1920]) {
@@ -152,8 +177,15 @@ test("desktop table of contents fits the viewport and does not clip labels", asy
 
     const toc = page.locator(".toc");
     const tocBox = await toc.boundingBox();
-    const footerBox = await page.locator("footer").boundingBox();
-    expect(tocBox.y + tocBox.height).toBeLessThanOrEqual(footerBox.y - 8 + 1);
+    if (width <= 840) {
+      await expect(toc).toHaveCSS("position", "static");
+      const contentBox = await page.locator(".post-list").boundingBox();
+      expect(tocBox.y + tocBox.height).toBeLessThanOrEqual(contentBox.y + 1);
+    } else {
+      await expect(toc).toHaveCSS("position", "sticky");
+      const footerBox = await page.locator("footer").boundingBox();
+      expect(tocBox.y + tocBox.height).toBeLessThanOrEqual(footerBox.y - 8 + 1);
+    }
     const clippedLabels = await page.locator("#toc-list a").evaluateAll((links) =>
       links.filter((link) => link.scrollWidth > link.clientWidth + 1).map((link) => link.textContent),
     );

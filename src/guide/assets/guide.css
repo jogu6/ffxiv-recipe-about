@@ -564,7 +564,12 @@ footer {
     padding: 0 10px 50px;
   }
   .toc {
+    position: static;
+    max-height: none;
     margin-bottom: 10px;
+  }
+  .toc > ol {
+    overflow: visible;
   }
   .post {
     padding: 12px;
@@ -589,15 +594,6 @@ footer {
 @media (max-width: 480px) {
   .xivca-wordmark {
     height: 38px;
-  }
-}
-@media (max-width: 600px) {
-  .toc {
-    position: static;
-    max-height: none;
-  }
-  .toc > ol {
-    overflow: visible;
   }
 }
 @media (max-width: 600px) {
