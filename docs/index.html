@@ -55,7 +55,7 @@
           <img class="xivca-wordmark" src="assets/xivca-logo.webp" alt="" aria-hidden="true" />
           <span class="guide-brand">
             <span class="app-formal-name">FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)</span>
-            <span class="guide-edition"><span class="guide-title">使い方ガイド</span> <span class="guide-version">v3.22 対応</span></span>
+            <span class="guide-edition"><span class="guide-title">使い方ガイド</span> <span class="guide-version">v3.23 対応</span></span>
           </span>
         </h1>
         <button class="license-button" id="licenseBtn" type="button">LICENSE</button>
@@ -77,7 +77,7 @@
             <ol>
               <li><a href="#features">対応している機能</a></li>
               <li><a href="#data-source">データの取得元と利用上の前提</a></li>
-              <li><a href="#supported-environments">対応するブラウザーと端末</a></li>
+              <li><a href="#supported-environments">対応するOS・ブラウザー</a></li>
             </ol>
           </li>
           <li>
@@ -86,6 +86,7 @@
               <li><a href="#search-item">アイテムを検索する</a></li>
               <li><a href="#recipe-tree">レシピツリーを確認する</a></li>
               <li><a href="#required-materials">必要素材と個数を確認する</a></li>
+              <li><a href="#item-image-check">アイテム画像にチェックを付ける</a></li>
               <li><a href="#reverse-recipe">素材からレシピを逆引きする</a></li>
               <li><a href="#screen-navigation">画面の移動方法</a></li>
               <li><a href="#return-home">タイトルロゴから初期画面に戻る</a></li>
@@ -197,16 +198,17 @@
           <p>
             アイテム、レシピ、ショップ、採集などの通常データは、FINAL FANTASY XIV公式サイト「Lodestone」のエオルゼアデータベースを取得元としています。掲載内容は更新時点のデータであり、ゲーム内の最新状態と一致しない場合があります。
           </p>
-          <h3 id="supported-environments">対応するブラウザーと端末</h3>
-          <p>すべての画像と主要機能を利用するには、WebPとアプリが使用するWeb標準に対応した次のバージョン以降が必要です。</p>
+          <h3 id="supported-environments">対応するOS・ブラウザー</h3>
+          <p>FirefoxではXIVcaを利用できません。次のいずれかのブラウザーを使用してください。</p>
           <ul>
-            <li>Google Chrome 93以降</li>
-            <li>Microsoft Edge 93以降</li>
-            <li>Safari 16.4以降</li>
-            <li>Brave 1.29以降</li>
+            <li>Google Chrome 111以上</li>
+            <li>Microsoft Edge 111以上</li>
+            <li>Brave Browser 1.49以上</li>
+            <li>Safari 16.4以上</li>
           </ul>
+          <p>Chromium系以外の対応ブラウザーは、仮想環境で動作を検証しています。</p>
           <p>
-            Windows、macOS、LinuxのPC、Androidのスマートフォン・タブレット、iPhone、iPadに対応します。共有、ファイル保存、ホーム画面・デスクトップへの追加方法はOSとブラウザーによって異なります。iPhone・iPadでホーム画面へ追加する場合はSafariを使用してください。安全性と互換性のため、利用可能な最新版への更新を推奨します。
+            WebPとアプリが使用するWeb標準に対応した、Windows、macOS、Linux、Android、iOS、iPadOSで利用できます。ただし、使用するOSで上記の対応ブラウザーが提供されている必要があります。共有、ファイル保存、ホーム画面・デスクトップへの追加方法はOSとブラウザーによって異なります。iPhone・iPadでホーム画面へ追加する場合はSafariを使用してください。最新バージョンをご利用されることをお勧めします。
           </p>
         </section>
 
@@ -219,6 +221,13 @@
           <h3 id="required-materials">必要素材と個数を確認する</h3>
           <p>必要に応じて完成品の個数を変更し、「素材リスト」を選ぶと、必要数が種類ごとに合算されます。</p>
           <div class="image-grid" data-gallery="search"></div>
+
+          <h3 id="item-image-check">アイテム画像にチェックを付ける</h3>
+          <p>レシピツリーまたは素材リストのアイテム画像を選ぶと、画像にチェックマークを付けたり外したりできます。素材を準備したか確認するためのメモとして使用できます。</p>
+          <p>チェックを付けても、必要素材や個数などの計算結果は変わりません。</p>
+          <p>レシピツリーと素材リストのチェックは別々に管理されます。同じ表示対象であれば再読み込み後も復元されますが、別のレシピや別のお気に入りの計算へ切り替えると消去されます。</p>
+          <p>チェック状態は、表示内容をテキストまたは画像で共有する場合にも反映されます。</p>
+          <div class="image-grid" data-gallery="itemImageCheck"></div>
 
           <h3 id="reverse-recipe">素材からレシピを逆引きする</h3>
           <p>レシピを持たない素材を検索して選ぶと、その素材を直接使用するアイテムを中央パネルで確認できます。</p>
@@ -313,10 +322,10 @@
         <section class="post" id="content-share">
           <h2>表示内容を共有する</h2>
           <h3 id="share-text">テキストで共有する</h3>
-          <p>「テキストで共有」を選ぶと、表示外の内容も含めた整形済みテキストが生成されます。掲載画像は撮影時にアプリが実際に出力したテキストです。</p>
+          <p>「テキストで共有」を選ぶと、表示外の内容も含めた整形済みテキストが生成されます。アイテム画像に付けたチェックは、チェック済み・未チェックの状態として共有テキストにも反映されます。掲載画像は撮影時にアプリが実際に出力したテキストです。</p>
           <div class="image-grid" data-gallery="shareText"></div>
           <h3 id="share-image">画像で共有する</h3>
-          <p>「画像で共有」を選ぶと、共有対象の内容が1枚のPNG画像として生成されます。掲載画像は撮影時にアプリが実際に出力した画像です。</p>
+          <p>「画像で共有」を選ぶと、共有対象の内容が1枚のPNG画像として生成されます。表示中のアイテム画像に付けたチェックマークも共有画像に含まれます。掲載画像は撮影時にアプリが実際に出力した画像です。</p>
           <div class="image-grid" data-gallery="shareImage"></div>
           <h3 id="share-panels">共有するパネルを選ぶ</h3>
           <p class="desktop-only">PC・タブレットでは、画面上部の共有ボタンを開き、検索結果、使用先、レシピ・素材から共有するパネルを選びます。</p>

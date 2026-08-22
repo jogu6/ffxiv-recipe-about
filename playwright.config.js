@@ -7,7 +7,6 @@ const workers = 2;
 const braveExecutable = process.env.BRAVE_PATH || 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe';
 const projects = [
   { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   { name: 'webkit', use: { ...devices['Desktop Safari'] } },
 ];
 if (fs.existsSync(braveExecutable)) {

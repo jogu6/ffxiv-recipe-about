@@ -15,6 +15,16 @@ window.GUIDE_SLIDES = Object.freeze({
       ["mobile-02-materials-result.webp", "スマートフォンで必要素材を表示した画面", "操作結果：必要素材と個数を確認する"],
     ],
   },
+  itemImageCheck: {
+    desktop: [
+      ["desktop-02-item-image-check-before.webp", "チェックを付ける前のレシピツリー", "操作前：チェックが付いていない状態を確認する"],
+      ["desktop-02-item-image-check-result.webp", "アイテム画像にチェックを付けたレシピツリー", "操作結果：アイテム画像のチェックを確認する"],
+    ],
+    mobile: [
+      ["mobile-02-item-image-check-before.webp", "スマートフォンでチェックを付ける前のレシピツリー", "操作前：チェックが付いていない状態を確認する"],
+      ["mobile-02-item-image-check-result.webp", "スマートフォンでアイテム画像にチェックを付けたレシピツリー", "操作結果：アイテム画像のチェックを確認する"],
+    ],
+  },
   reverse: {
     desktop: [
       ["desktop-02-reverse-before.webp", "素材を検索した画面", "操作前：素材を検索する"],

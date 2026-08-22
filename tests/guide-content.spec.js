@@ -24,7 +24,7 @@ test("目次は確定した12章を順番どおり表示する", async ({ page }
 
 test("目次の小項目は本文の固有見出しへ移動する", async ({ page }) => {
   const nestedLinks = page.locator("#toc-list > li > ol a");
-  await expect(nestedLinks).toHaveCount(47);
+  await expect(nestedLinks).toHaveCount(48);
   const targets = await nestedLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   expect(new Set(targets).size).toBe(targets.length);
   for (const target of targets) {
@@ -78,14 +78,30 @@ test("シェアコードとファイル操作は発行・取り込みを分け�
 
 test("対応環境と保存・更新の前提を具体的に説明する", async ({ page }) => {
   const overview = page.locator("#overview");
-  await expect(overview).toContainText("Google Chrome 93以降");
-  await expect(overview).toContainText("Microsoft Edge 93以降");
-  await expect(overview).toContainText("Safari 16.4以降");
-  await expect(overview).toContainText("Brave 1.29以降");
+  await expect(overview).toContainText("FirefoxではXIVcaを利用できません");
+  await expect(overview).toContainText("Google Chrome 111以上");
+  await expect(overview).toContainText("Microsoft Edge 111以上");
+  await expect(overview).toContainText("Brave Browser 1.49以上");
+  await expect(overview).toContainText("Safari 16.4以上");
+  await expect(overview).toContainText("Chromium系以外の対応ブラウザーは、仮想環境で動作を検証しています");
+  await expect(overview).toContainText("Windows、macOS、Linux、Android、iOS、iPadOS");
+  await expect(overview).toContainText("最新バージョンをご利用されることをお勧めします");
   await expect(overview).toContainText("WebP");
   await expect(overview).toContainText("エオルゼアデータベース");
   await expect(overview).toContainText("iPhone・iPadでホーム画面へ追加する場合はSafari");
   await expect(page.locator("#data-update")).toContainText("別ブラウザーや別端末へは自動同期されません");
   await expect(page.locator("#data-migration").locator("xpath=following-sibling::p[1]")).toContainText("お気に入りリスト等が全て削除されます");
   await expect(page.locator("#notes")).toContainText("製作レシピがあるアイテム");
+});
+
+test("アイテム画像のチェック操作と共有への反映を説明する", async ({ page }) => {
+  const heading = page.locator("#item-image-check");
+  await expect(heading).toHaveCount(1);
+  await expect(page.locator('#toc-list a[href="#item-image-check"]')).toHaveCount(1);
+  const section = heading.locator("xpath=parent::section");
+  await expect(section).toContainText("計算結果は変わりません");
+  await expect(section).toContainText("再読み込み後も復元されます");
+  await expect(page.locator('[data-gallery="itemImageCheck"]')).toBeAttached();
+  await expect(page.locator("#share-text + p")).toContainText("共有テキストにも反映されます");
+  await expect(page.locator("#share-image + p")).toContainText("共有画像に含まれます");
 });

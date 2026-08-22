@@ -9,7 +9,7 @@ test('renders the guide, metadata, and main navigation', async ({ page }) => {
   await expect(page.locator('.xivca-wordmark')).toBeVisible();
   await expect(page.locator('.app-formal-name')).toHaveText('FinalFantasy XIV® Crafting Assistant XIVca(シヴカ)');
   await expect(page.locator('.guide-title')).toHaveText('使い方ガイド');
-  await expect(page.locator('.guide-version')).toHaveText('v3.22 対応');
+  await expect(page.locator('.guide-version')).toHaveText('v3.23 対応');
   const headingStyle = await page.locator('.guide-brand').evaluate((brand) => {
     const formalName = brand.querySelector('.app-formal-name');
     const guideTitle = brand.querySelector('.guide-title');

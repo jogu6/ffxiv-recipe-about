@@ -14,7 +14,8 @@ test('Playwright runs spec files with bounded file-level workers and allows reus
   assert.match(config.webServer.command, /^node tools\/serve-site\.mjs --port /);
   assert.ok(config.webServer.timeout >= 120000);
   const projectNames = config.projects.map(project => project.name);
-  assert.deepEqual(projectNames.slice(0, 3), ['chromium', 'firefox', 'webkit']);
+  assert.deepEqual(projectNames.slice(0, 2), ['chromium', 'webkit']);
+  assert.ok(!projectNames.includes('firefox'));
   if (process.platform === 'win32') assert.ok(projectNames.includes('brave'));
 });
 

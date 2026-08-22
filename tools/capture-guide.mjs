@@ -272,6 +272,12 @@ async function captureSearchAndMaterials(browser, mobile) {
   await save(page, `${prefix}-02-search-input.webp`);
   await page.locator("#recipeList li").filter({ hasText: "ブラスバスタードソード" }).first().click();
   await save(page, `${prefix}-02-search-result.webp`, () => page.locator(".root-item-main").filter({ hasText: "ブラスバスタードソード" }).waitFor());
+  const checkableItemImage = page.locator('.checkable-item-icon[aria-pressed="false"]:visible').first();
+  await save(page, `${prefix}-02-item-image-check-before.webp`, () => checkableItemImage.waitFor());
+  await checkableItemImage.click();
+  await save(page, `${prefix}-02-item-image-check-result.webp`, async () => {
+    await page.locator('.checkable-item-icon[aria-pressed="true"]:visible').first().waitFor();
+  });
   await page.locator("#countInput").fill("3");
   await page.locator("#countInput").dispatchEvent("change");
   await save(page, `${prefix}-02-materials-count.webp`);
